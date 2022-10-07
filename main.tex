@@ -1,86 +1,53 @@
-% #############################################################################
-% This is the MAIN DOCUMENT of the Thesis MSc TEMPLATE.
-% The content for the Thesis MSc is to be written in separate documents
-% located in the folder ./Chapters
-%         Aknowledgments.tex
-%         Abstract.tex
-%         KeyWords.tex
-%         Resumo.tex
-%         PalavrasChave.tex
-%         Acronyms.tex
-%         Front_Cover.tex
-%         Chapter_1.tex ....Chapter_2 .....
-%         ApendixA.tex ... ApendixB.tex...
-% -----------------------------------------------------------------------------
-% The class "istulthesis" is based on the standard LaTeX 'report' class.
-% It can be used for Instituto Superior Tecnico thesis, as it follows the
-% regulations published by the Scientific Council of IST.
-% The class defines the document style.
-% IST requires the thesis to be written in Arial or similar.
-% Two arguments in '\documentclass' allow you to define the thesis font:
-% 'Helvetica' and 'AvantGarde', which transforms
-% the default LaTeX font into Helvetica or AvantGarde, respectively.
-% #############################################################################
-% The document is automatically set for english or portuguese by just selecting
-% the MAIN LANGUAGE in file 'Thesis-MSc-Preamble_commands.tex'
-% #############################################################################
-% Thesis-MSc
-% Version 4, August 2022
-% BY: Prof. Rui Santos Cruz, rui.s.cruz@tecnico.ulisboa.pt
-% #############################################################################
-% !TEX root = ./main.tex
-% -----------------------------------------------------------------------------
-%
 %\documentclass[defaultstyle,10pt,Helvetica,oneside]{istulthesis}
 \documentclass[defaultstyle,10pt,Helvetica,twoside,openright]{resources/istutlthesis}
-%
-% -----------------------------------------------------------------------------
-% The Preamble document contains all the necessary Packages for typesetting
-% Modify it to suit your needs
-% -----------------------------------------------------------------------------
+
 \input{resources/preamble}
-%
-% #############################################################################
-% #############################################################################
+
 \begin{document}
-%
-% Add PDF bookmark
+
+\ifnum 1>0
+\newcommand{\pd}[1]{\textit{\textcolor{red}{[Peter]: #1}}}
+\newcommand{\bsd}[1]{\textit{\textcolor{red}{[Baltasar]: #1}}}
+\newcommand{\rr}[1]{\textit{\textcolor{red}{[Rodrigo]: #1}}}
+\definecolor{aoe}{rgb}{0.0, 0.5, 0.0}
+\newcommand{\update}[1]{{\color{aoe}#1}}
+\newcommand{\new}[1]{{\color{blue}#1}}
+\else
+\newcommand{\pd}[1]{}
+\newcommand{\bsd}[1]{}
+\newcommand{\rr}[1]{}
+\newcommand{\update}[1]{}
+\newcommand{\new}[1]{}
+\fi
+
 \pdfbookmark[0]{Titlepage}{Title}
 \input{resources/cover}
-% Print Titlepage (Cover)
 \maketitle
-\thispagestyle{empty} % the following page without header or footer
-\cleardoublepage
-%
-% -----------------------------------------------------------------------------
-% PAGE NUMBERING FOR INDEXING MATTER in ROMAN
+\thispagestyle{empty}
+\cleardoublepage{}
+
 \setcounter{page}{1} \pagenumbering{roman}
-\baselineskip 18pt % line spacing: -12pt for single spacing
+\baselineskip 18pt  % line spacing: -12pt for single spacing
                    %               -18pt for 1 1/2 spacing
                    %               -24pt for double spacing
-% -----------------------------------------------------------------------------
-% THE ACKNOWLEGMENTS
 \pdfbookmark[0]{Acknowledgments}{acknowledgments}
 \begin{acknowledgments}
 	\input{src/00_ack.tex}
 \end{acknowledgments}
-%
-% -----------------------------------------------------------------------------
-% THE ABSTRACT
+
 \begin{abstract}
 	\input{src/00_abstract.tex}
 \end{abstract}
+
 \begin{keywords}
 	\input{src/00_keywords.tex}
 \end{keywords}
 \clearpage
+
 \thispagestyle{empty}
-%% If Printing on DOUBLE SIDED pages, the second page should be white.
-%% Otherwise, comment the following command:
-\cleardoublepage
-%
-% -----------------------------------------------------------------------------
-% O RESUMO
+
+\cleardoublepage{}
+
 \begin{resumo}
 	\input{src/00_resumo.tex}
 \end{resumo}
@@ -88,32 +55,25 @@
 	\input{src/00_palavras_chave.tex}
 \end{palavraschave}
 \clearpage
+
 \thispagestyle{empty}
-%% If Printing on DOUBLE SIDED pages, the second page should be white.
-%% Otherwise, comment the following command:
-\cleardoublepage
-%
-% -----------------------------------------------------------------------------
+
 % This is required for the Fancy Chapters with minitoc
-\dominitoc
-\dominilof
-\dominilot
-% -----------------------------------------------------------------------------
-% Lists of Contents
+\dominitoc{}
+\dominilof{}
+\dominilot{}
+
 \renewcommand{\baselinestretch}{1}
 \pdfbookmark[0]{Contents}{toc}
 \tableofcontents
-% If Printing on DOUBLE SIDED pages, the second page should be white.
-% Otherwise, comment the following command:
-\cleardoublepage
+\cleardoublepage{}
+
 % reposition baseline
 \renewcommand{\baselinestretch}{1.5}
-% -----------------------------------------------------------------------------
-% List of Figures
+
 \pdfbookmark[1]{List of Figures}{lof}
 \listoffigures
-\cleardoublepage
-% -----------------------------------------------------------------------------
+\cleardoublepage{}
 \begingroup
     % \let\clearpage\relax
     % \let\cleardoublepage\relax
@@ -121,141 +81,71 @@
 % List of Tables
 \pdfbookmark[1]{List of Tables}{lot}
 \listoftables
-% If Printing on DOUBLE SIDED pages, the second page should be white.
-% Otherwise, comment the following command:
-%\let\cleardoublepage\relax
-\cleardoublepage
-% -----------------------------------------------------------------------------
-% List of Algorithms
-% If not used, comments the lines!
-% Requires packages algorithmic, algorithm
+\cleardoublepage{}
+
 \pdfbookmark[1]{List of Algorithms}{loa}
-\listofalgorithms
-% If Printing on DOUBLE SIDED pages, the second page should be white.
+\listofalgorithms{}
 \endgroup
-% Otherwise, comment the following command:
-\cleardoublepage
-% -----------------------------------------------------------------------------
-% Listings
-% If not used, comments the lines!
-% Requires packages listings
+\cleardoublepage{}
+
 \pdfbookmark[1]{Listings}{lol}
-\lstlistoflistings
-\cleardoublepage
+\lstlistoflistings{}
+\cleardoublepage{}
 % -----------------------------------------------------------------------------
 % % List of acronyms
 \pdfbookmark[1]{Acronyms}{loac}
 \chapter*{\tlangAcronyms}
 \input{src/00_acronyms.tex}
-% If Printing on DOUBLE SIDED pages, the second page should be white.
 \clearpage
-% Otherwise, comment the following command:
-\cleardoublepage
+\cleardoublepage{}
 % -----------------------------------------------------------------------------
-% PAGE NUMBERING FOR DOCUMENT MATTER in ARABIC
-% Pages number is starting with arabic style. Until here were on roman mode
+
 \setcounter{page}{1} \pagenumbering{arabic}
 \baselineskip 18pt
 % -----------------------------------------------------------------------------
-% This a suggestion for the Content of the Document
-% Add more Chapters by duplicating a Chapter Block, pointing to the file
-%Chapter 1
-\acresetall
+
+\acresetall{}
 \input{src/01_intro.tex}
-% If Printing on DOUBLE SIDED pages, the second page should be white.
-% Otherwise, comment the following command:
-\cleardoublepage
-%
-%Chapter 2
+\cleardoublepage{}
+
 \input{src/02_xxx.tex}
-% If Printing on DOUBLE SIDED pages, the second page should be white.
-% Otherwise, comment the following command:
-\cleardoublepage
-%
-%Chapter 3
+\cleardoublepage{}
+
 \input{src/03_xxx.tex}
-% If Printing on DOUBLE SIDED pages, the second page should be white.
-% Otherwise, comment the following command:
-\cleardoublepage
-%
-%Chapter 4
+\cleardoublepage{}
+
 \input{src/04_xxx.tex}
-% If Printing on DOUBLE SIDED pages, the second page should be white.
-% Otherwise, comment the following command:
-%\cleardoublepage
-%
-%Chapter 5
+\cleardoublepage{}
+
 \input{src/05_xxx.tex}
-% If Printing on DOUBLE SIDED pages, the second page should be white.
-% Otherwise, comment the following command:
-\cleardoublepage
-%
-%Chapter 6
+\cleardoublepage{}
+
 \input{src/06_xxx.tex}
-% If Printing on DOUBLE SIDED pages, the second page should be white.
-% Otherwise, comment the following command:
-\cleardoublepage
-%
-% -----------------------------------------------------------------------------
+\cleardoublepage{}
+
 % BIBLIOGRAPHY
-% Add the Bibliography to the PDF table of contents (not the document table of contents)
-%\pdfbookmark[0]{Bibliography}{bib}
+\pdfbookmark[0]{Bibliography}{bib}
 \addcontentsline{toc}{chapter}{Bibliography}
-% The bibliography style sheet
-% Chose your preferences on the format of the entries and the Labels:
-% IEEEtran: Used in general (recommended for IST Thesis)
-%           Entries are labelled and sorted by appearance in the document
-%           Labels are Numeric inside square brackets
 \bibliographystyle{IEEEtran}
-%
-% Apalike:  Entries formatted alphabetically, last name first, with identation
-%           Labels with Autor's Name and Year inside square brackets
-%\bibliographystyle{apalike}
-%
-% Alpha:    Entries formatted with Autor's Name and Year, hanging identation
-%           Labels with Autor's abbr. Names and Year inside square brackets
-%\bibliographystyle{alpha}
-%
-% Acm:     Entries formatted with Autor's Name (small Caps), hanging identation
-%          Labels are Numeric inside square brackets
-%\bibliographystyle{acm}
-% The following command resets the 'emphasis' style for bibliography entries
-\normalem
-% Name of your BiBTeX file
-\bibliography{main} % Put here your own filename
-%
+\normalem{}
+\bibliography{main}
+
 % The following command modifies the 'emphasis' style for bibliography entries
-\ULforem
-% If Printing on DOUBLE SIDED pages, the second page should be white.
-% Otherwise, comment the following command:
-\cleardoublepage
-%
-% -----------------------------------------------------------------------------
-% Glossary
-%\input{src/glossary.tex}
-\printglossary[] \mtcaddchapter
+\ULforem{}
+\cleardoublepage{}
 
-% If Printing on DOUBLE SIDED pages, the second page should be white.
-%\clearpage
-% Otherwise, comment the following command:
-\cleardoublepage
-% -----------------------------------------------------------------------------
-% HERE GO THE APPENDIXES IF REQUIRED
-% If not required just comment the blocks
+\printglossary[]
+\mtcaddchapter{}
+
+\cleardoublepage{}
+
 \appendix
-%% First Appendix
-%\pdfbookmark[1]{Appendix A}{appendix}
+\pdfbookmark[1]{Appendix A}{appendix}
 \input{app/appendix_a.tex}
-%% If Printing on DOUBLE SIDED pages, the second page should be white.
-%% Otherwise, comment the following command:
-\cleardoublepage
-%% Second Appendix
-%\pdfbookmark[1]{Appendix B}{appendix}
-\input{app/appendix_b.tex}
-%% If Printing on DOUBLE SIDED pages, the second page should be white.
-%% Otherwise, comment the following command:
-\cleardoublepage
+\cleardoublepage{}
 
-% -----------------------------------------------------------------------------
-% And this is THE END of the IST Thesis Document
+\pdfbookmark[1]{Appendix B}{appendix}
+\input{app/appendix_b.tex}
+\cleardoublepage{}
+
 \end{document}
