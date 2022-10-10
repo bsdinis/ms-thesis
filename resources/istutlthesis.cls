@@ -185,15 +185,6 @@
 \newcommand*{\th@univlogopsx}{2}
 \newcommand*{\th@univlogopsy}{2}
 
-\newcommand*{\secondunivlogo}[3]{\th@StoreIn{\th@secondunivlogo}{#3} \th@StoreIn{\th@secondunivlogopsx}{#1} \th@StoreIn{\th@secondunivlogopsy}{#2}}
-\newcommand*{\th@secondunivlogo}{
-	\ClassError{istulthesis}{
-		You must specify the seconduniversity image logo}
-	{Use the \protect\secondunivlogo{} command in the preamble.}
-}
-% position coordinates of the seconduniversity image logo
-\newcommand*{\th@secondunivlogopsx}{2}
-\newcommand*{\th@secondunivlogopsy}{2}
 %
 % DEFINE COMMAND FOR: thesislogo -> THESIS IMAGE
 \newcommand*{\thesislogo}[3]{\th@StoreIn{\th@thesislogo}{#3} \th@StoreIn{\th@thesislogopsx}{#1} \th@StoreIn{\th@thesislogopsy}{#2}}
