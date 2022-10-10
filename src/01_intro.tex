@@ -41,9 +41,9 @@ practice in distributed systems, which allows replicas to recover
 from crashes from their local state, which in turn makes the
 system resilient to catastrophic full system shutdowns. From a
 formal point of view, however, these systems are treated in a
-very similar fashion to others which use volatile state only
-replicas. Indeed, protocols which explicitely consider the
-persistent aspect of the nodes focus on when and what data they need to
+very similar fashion to others that use volatile state only
+replicas. Indeed, when the persistent aspect of nodes
+is explicitely considered, protocols focus on when and what data they need to
 persist so that, in the event of a restart, the node can
 operate as if nothing happened.
 
@@ -139,7 +139,7 @@ of data. \ac{TEEMS} is used with one or more untrusted cloud storage
 services. \ac{TEEMS} maintains metadata for each data item (including the
 encryption key, authentication code, latest version number and
 policy), while ensuring strong security and enabling concurrent
-sharing of data. \ac{R2-S2} is a replicated key value store which
+sharing of data. \ac{R2-S2} is a replicated key value store that
 leverages the \ac{RR} model to extract higher throughput while
 retaining the strong reliability expected of a persistent
 replicated system.
