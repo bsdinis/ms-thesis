@@ -6,7 +6,7 @@
         state are treated akin to volatile state replicated
         systems, with the additional option of a node recovering
         from local state after restart;
-    \item In certain security sensitive contexts, namely TEEs,
+    \item In certain security sensitive contexts, namely TEEs.
         this does not work. Nodes have limited control over
         persistent state, especially across restarts.
     \item To recover safely from persistent state one must use a
@@ -28,18 +28,318 @@
         experimental results)
 \end{enumerate}}
 
+Replication is a standard technique in distributed systems, which adds
+fault tolerance to a service implemented by an individual networked
+node. To ensure that the replicated service appears to clients like
+its single-node equivalent except for higher availability, a
+replication protocol coordinates the replicated
+nodes. For instance, a \ac{SMR} protocol like
+Paxos~\cite{paxos} may be used for this purpose.
+
+Adding persistency to nodes in replicated systems is a common
+practice in distributed systems, which allows replicas to recover
+from crashes from their local state, which in turn makes the
+system resilient to catastrophic full system shutdowns. From a
+formal point of view, however, these systems are treated in a
+very similar fashion to others which use volatile state only
+replicas. Indeed, protocols which explicitely consider the
+persistent aspect of the nodes focus on when and what data they need to
+persist so that, in the event of a restart, the node can
+operate as if nothing happened.
+
+Although this approach is sufficient for the general use case, in
+certain security sensitive contexts it is not. In particular,
+\acp{TEE} are deployed in a highly adversarial model, where the
+control over the persistent storage is limited, especially so in
+the event of a restart.
+
+Networked services implemented inside \acp{TEE} like ARM TrustZone~\cite{armTZ}, AMD SEV-SNP~\cite{amdsev,
+  amdsev-snp}, Intel SGX~\cite{intelsgx}, or the future Intel
+TDX~\cite{inteltdx} and ARM CCA~\cite{arm-cca} can similarly benefit
+from replication.  Replicated \ac{TEE}-based systems aim to combine the
+confidentiality, integrity, and remote attestation of \acp{TEE} with
+replication to ensure high availability.  Examples include permissioned blockchains~\cite{teechain}, monotonic
+counters for ensuring state freshness~\cite{rote}, in-memory key-value
+stores~\cite{avocado-atc21}, as well as broadcast and common random
+number generator primitives~\cite{p2p-sgx}.
+
+A key design decision in all replicated systems is the choice of fault
+model underlying the replication protocol. This model captures the set
+of faults that can affect an individual replica.  For instance, in the
+{\em crash-fault model}, faulty nodes are assumed to execute correctly
+until they crash at an arbitrary point in their execution, when they
+seize to perform further steps until they restart. In the {\em
+  Byzantine fault model}, faulty nodes may perform arbitrary
+actions. The choice of fault model affects the complexity, overhead,
+and tolerance threshold of a replication protocol, and is important
+for both performance and security. A fault model that is too
+pessimistic may lead to unnecessary safeguards, which can impact both
+performance and the cost of replication. Conversely, a fault model
+that is too optimistic may fail to account for all faults that can
+occur, which then leads to broken assumptions and loss of correctness
+or security of the replicated system.
+
+In the case of \ac{TEE}-based replication, the choice of existing systems
+that store replica state persistently~\cite{teechain,rote} was to
+employ \ac{BFT} replication. This may seem
+necessary given that rollback of persistent state is a behavior not
+covered by the crash-fault model.  However, the Byzantine model is
+much stronger than necessary for this setting. Intuitively, this
+is because it assumes arbitrary behavior of
+faulty components, thus not taking into account the integrity
+guarantees for the code running inside \acp{TEE}.
+
+To fill this gap in distributed replication research, we
+introduce the \ac{RR} fault model, which
+%is designed for replicated \ac{TEE}-isolated services and
+captures precisely the set of faults that \acp{TEE} can suffer according to
+their specification.  The main insight behind \ac{RR} is that,
+apart from crash faults, whenever a \ac{TEE} restarts, the fault model
+allows for a rollback of externally stored state to an earlier
+version.  Such rollback events are possible because \acp{TEE} lack general
+and high-performance means of ensuring the freshness of externally
+stored state.  During an execution, however, the integrity of the
+internal, volatile state of a \ac{TEE} is ensured by hardware, and the
+integrity of any externally stored state can be ensured by standard
+cryptographic means.
+
+The \ac{RR} fault model occupies a middle ground between \ac{CFT}
+and \ac{BFT}. As we will show, unlike CFT it provides
+security for replicated \acp{TEE} by tolerating state roll-back at a cost
+that is similar to \ac{CFT} and better than \ac{BFT}. Specifically, it is able
+to substantially reduce the required communication, particularly for
+read operations, in the common case where restarts are
+infrequent.
+
+Stepping back, we make the observation that the \ac{RR} fault
+model can be useful, albeit for different reasons, in the more
+general case of persistent replicated systems within the crash
+model. A key factor for performance in this systems are the slow
+accesses to untrusted storage, which must occur in the critical
+path to ensure the correctness of the system. By batching
+multiple requests together, it is possible to reduce this
+overhead, increasing throughput at the expense of the additional
+latency required to form the batch. Leveraging the \ac{RR} model,
+it is possible to form batches more aggressively, replying to
+certain requests before synchronizing to persistent storage. This
+would otherwise be unsafe, as a crash before the synchronization
+would constitute an effective rollback, which the \ac{RR} model
+captures.
+
+To demonstrate the potential of the \ac{RR} model, we apply it to
+two types of replication protocols, namely the \ac{ABD}
+ read/write replication protocol and the Paxos \ac{SMR}
+protocol, showing that this adaptation is relatively straightforward.
+We then use these protocols to devise two systems: \ac{TEEMS} and
+\ac{R2-S2}. \ac{TEEMS}, a replicated metadata service,
+is a relevant contribution in its own right, since
+it enables Cloud storage with the same strong confidentiality and
+integrity guarantees provided by \acp{TEE}. while also ensuring freshness
+of data. \ac{TEEMS} is used with one or more untrusted cloud storage
+services. \ac{TEEMS} maintains metadata for each data item (including the
+encryption key, authentication code, latest version number and
+policy), while ensuring strong security and enabling concurrent
+sharing of data. \ac{R2-S2} is a replicated key value store which
+leverages the \ac{RR} model to extract higher throughput while
+retaining the strong reliability expected of a persistent
+replicated system.
+
+Our contributions include:
+\begin{enumerate}
+    \item The \ac{RR} fault model, which is the first to capture
+        precisely the fault behavior of \acp{TEE} that rely on external storage;
+    \item A derivation of quorum sizes for replication protocols
+        in the \ac{RR} model;
+    \item Principles for the adaptation of \ac{CFT} protocols to
+        the \ac{RR} model;
+    \item Two protocols for this model, implementing read-write
+        storage and \ac{SMR};
+    \item The \ac{TEEMS} generic metadata service, and its integration with
+        untrusted cloud storage services to give clients the ability to share
+        and concurrently access persistent data with strong confidentiality,
+        integrity, and freshness;
+    \item The \ac{R2-S2} distributed key value store, which
+        enables higher throughput from key value stores backed by
+        persistent state;
+    \item An extensive experimental evaluation of our protocols
+        in the \ac{TEE} setting, with a deep comparison with
+        unsafe \ac{CFT} and expensive \ac{BFT} solutions;
+    \item An extensive experimental evaluation of the \ac{R2-S2}
+        system.
+\end{enumerate}
+
+\if 0 % paper intro
+
+Replication is a standard technique in distributed systems, which adds
+fault tolerance to a service implemented by an individual networked
+node. To ensure that the replicated service appears to clients like
+its single-node equivalent except for higher availability, a
+replication protocol coordinates the replicated
+nodes. For instance, a state machine replication (SMR) protocol like
+Paxos~\cite{paxos} may be used for this purpose.
+
+Networked services implemented inside a trusted execution environment
+(TEE) like ARM TrustZone~\cite{armTZ}, AMD SEV-SNP~\cite{amdsev,
+  amdsev-snp}, Intel SGX~\cite{intelsgx}, or the future Intel
+TDX~\cite{inteltdx} and ARM CCA~\cite{arm-cca} can similarly benefit
+from replication.  Replicated \ac{TEE}-based systems aim to combine the
+confidentiality, integrity, and remote attestation of \acp{TEE} with
+replication to ensure high availability.
+%and resilience to rollback attacks that revert the externally stored,
+%persistent state of a TEE~\cite{memoir}
+%\bsd{the reference to rollback attacks early on seems out of place,
+%  since this is a gap in most replicated \acp{TEE}. Moreover, memoir is not
+%  a replicated \ac{TEE} system}.
+Examples include permissioned blockchains~\cite{teechain}, monotonic
+counters for ensuring state freshness~\cite{rote}, in-memory key-value
+stores~\cite{avocado-atc21}, as well as broadcast and common random
+number generator primitives~\cite{p2p-sgx}.
+
+A key design decision in all replicated systems is the choice of fault
+model underlying the replication protocol. This model captures the set
+of faults that can affect an individual replica.  For instance, in the
+{\em crash-fault model}, faulty nodes are assumed to execute correctly
+until they crash at an arbitrary point in their execution, when they
+seize to perform further steps until they restart. In the {\em
+  Byzantine fault model}, faulty nodes may perform arbitrary
+actions. The choice of fault model affects the complexity, overhead,
+and tolerance threshold of a replication protocol, and is important
+for both performance and security. A fault model that is too
+pessimistic may lead to unnecessary safeguards, which can impact both
+performance and the cost of replication. Conversely, a fault model
+that is too optimistic may fail to account for all faults that can
+occur, which then leads to broken assumptions and loss of correctness
+or security of the replicated system.
+
+In the case of \ac{TEE}-based replication, the choice of existing systems
+that store replica state persistently~\cite{teechain,rote} was to
+employ Byzantine fault tolerant (BFT) replication. This may seem
+necessary given that rollback of persistent state is a behavior not
+covered by the crash-fault model.  However, the Byzantine model is
+much stronger than necessary for this setting. Intuitively, this
+is because it assumes arbitrary behavior of
+faulty components, thus not taking into account the integrity
+guarantees for the code running inside \acp{TEE}.
+
+In this paper, we fill a gap in distributed replication research by
+introducing the restart-rollback (\faultmodel) fault model, which
+%is designed for replicated \ac{TEE}-isolated services and
+captures precisely the set of faults that \acp{TEE} can suffer according to
+their specification.  The main insight behind \faultmodel\ is that,
+apart from crash faults, whenever a \ac{TEE} restarts, the fault model
+allows for a rollback of externally stored state to an earlier
+version.  Such rollback events are possible because \acp{TEE} lack general
+and high-performance means of ensuring the freshness of externally
+stored state.  During an execution, however, the integrity of the
+internal, volatile state of a \ac{TEE} is ensured by hardware, and the
+integrity of any externally stored state can be ensured by standard
+cryptographic means.
+
+The \faultmodel\ fault model occupies a middle ground between crash
+fault tolerance (CFT) and BFT. As we will show, unlike CFT it provides
+security for replicated \acp{TEE} by tolerating state roll-back at a cost
+that is similar to CFT and better than BFT. Specifically, it is able
+to substantially reduce the required communication, particularly for
+read operations, in the common case where restarts are
+infrequent.
+
+To demonstrate the potential of the \faultmodel\ model, we apply it to
+two types of replication protocols, namely the Attiya, Bar-Noy, Dolev
+(ABD) read/write replication protocol and the Paxos
+state machine replication (SMR)
+protocol, showing that this adaptation is relatively straightforward.
+%; and, we apply each protocol to a specific application scenario.
+We then use these protocols to devise a replicated metadata service
+called \sys, which is a relevant contribution in its own right, since
+it enables Cloud storage with the same strong confidentiality and
+integrity guarantees provided by \acp{TEE}. while also ensuring freshness
+of data.
+% and the ability to securely share data between clients by
+% enforcing access policies. To this end, \sys\ provides a
+% generic, scalable,
+%\sys\ is a trustworthy metadata service hosted in a replicated set of
+%TEEs, which may themselves be hosted by a diverse set of cloud
+%providers for increased resilience.
+%This service provides a semantically rich interface with
+%persistent updates and read-modify-write (RMW) operations.
+\sys\ is used with one or more untrusted cloud storage
+services. \sys\ maintains metadata for each data item (including the
+encryption key, authentication code, latest version number and
+policy), while ensuring strong security and enabling concurrent
+sharing of data.
+
+%and updates this metadata and the respective data atomically using the simple read/write protocol for the \faultmodel\ model.\bsd{need to rewrite this, present that it uses both protocols}
+
+%The second case study is inspired by permissioned blockchains, and
+%their ability to improve performance by offloading transactions to a
+%payment channel running a more efficient protocol, and then settling
+%the final balance to the main blockchain. To support this, we built a
+%state machine replication protocol based on the \faultmodel\ model,
+%thus allowing the more complex operations of these payment channels to
+%be supported in a resilient way.
+
+We implemented both the read/write and SMR replication protocols for
+three different fault models (\faultmodel, crash, and Byzantine), and
+we also implemented \sys\ and used it to implement a new class of
+secure cloud storage services. We evaluated the protocols using
+microbenchmarks and the storage system using both microbenchmarks and
+YCSB.  Our experimental results show that the protocols for the
+\faultmodel\ model perform significantly better than their BFT
+counterparts, and, compared to CFT, they perform identically while
+additionally tolerating rollback attacks.
+Furthermore, \sys\ offers secure, sharable storage at modest overhead.
+
+Our contributions include:
+%\begin{enumerate}
+%\item
+ (1) The \faultmodel\ fault model, which is the first to capture
+precisely the fault behavior of \acp{TEE} that rely on external storage;
+%    \item
+(2) a derivation of quorum sizes for replication protocols in the
+\faultmodel\ model;
+      %     \item
+(3) principles for the adaptation of CFT protocols to
+the \faultmodel\ model;
+%\item
+(4) two protocols for this model, implementing read-write storage and
+SMR;
+        %    \item
+(5) The \sys\ generic metadata service, and its integration with
+untrusted cloud storage services to give clients the ability to share
+and concurrently access persistent data with strong confidentiality,
+integrity, and freshness;
+%\item
+(6) An extensive experimental evaluation of our protocol, and of the
+storage solutions based on \sys\ in different deployment scenarios.
+%\end{enumerate}
+
+
+The remainder of the paper is organized as follows.  We motivate
+our work and provide some background \S\ref{sec:fault_model},
+describe the \faultmodel\ model in \S\ref{sec:model}, present the
+replication protocols in the new model in
+\S\ref{sec:protocol}, and an example application built using
+those protocols in \S\ref{sec:metadata}.  We describe our
+prototype implementations in \S\ref{sec:impl}, evaluate them
+experimentally in \S\ref{sec:eval}, survey related work in
+\S\ref{sec:related_work}, and conclude in \S\ref{sec:conclusion}.
+
+
+
+
+
+\fi
+
 % #############################################################################
 \section{Organization of the Document}
-\bsd{TODO}
-\if 0
-This thesis is is organized as follows: \Cref{chap:intro}
-interdum vel, tristique ac, condimentum non, tellus.  In
-\cref{chap:back} curabitur nulla purus, feugiat id, elementum in,
-lobortis quis, pede.  In \cref{chap:architecture} consequat
-ligula nec tortor. Integer eget sem. Ut vitae enim eu est
-vehicula gravida.  \Cref{chap:implement} morbi egestas, urna non
-consequat tempus, nunc arcu mollis enim, eu aliquam erat nulla
-non nibh in \cref{chap:evaluation}.  \Cref{chap:conclusion}
-suspendisse dolor nisl, ultrices at, eleifend vel, consequat at,
-dolor.
-\fi
+
+The rest of the thesis is organized as follows:
+\Cref{chap:related} covers related work. In \cref{chap:model} we
+formalize the \ac{RR} model and show the derivation of
+\ac{RR}-based quorum systems and protocols. \Cref{chap:tee}
+describes the usage of \acp{TEE} with \ac{RR}, with the
+accompanying design and evaluation of \ac{TEEMS}. In
+\cref{chap:storage} we present the design of
+\ac{R2-S2} and its experimental evaluation.
+\Cref{chap:conclusion} summarizes our work and presents possible
+avenues for future work.
