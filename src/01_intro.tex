@@ -33,27 +33,31 @@ fault tolerance to a service implemented by an individual networked
 node. To ensure that the replicated service appears to clients like
 its single-node equivalent except for higher availability, a
 replication protocol coordinates the replicated
-nodes. For instance, a \ac{SMR} protocol like
-Paxos~\cite{paxos} may be used for this purpose.
+nodes. For instance, to replicate a simple key value store with a
+read/write interface, one can use the \ac{ABD}~\cite{abd}
+protocol. For more complex applications that can be modelled
+using a deterministic state machine, an \ac{SMR} protocol like
+Paxos~\cite{paxos} may be used.
 
 Adding persistency to nodes in replicated systems is a common
 practice in distributed systems, which allows replicas to recover
 from crashes from their local state, which in turn makes the
-system resilient to catastrophic full system shutdowns. From a
-formal point of view, however, these systems are treated in a
-very similar fashion to others that use volatile state only
-replicas. Indeed, when the persistent aspect of nodes
-is explicitely considered, protocols focus on when and what data they need to
+system resilient to catastrophic full system
+shutdowns~\cite{bolosky:paxos}. From a
+formal point of view, however, these systems are commonly treated in a
+very similar fashion to others that store their state solely in
+volatile memory. Indeed, when the persistent aspect of nodes
+is explicitely considered, protocols are almost identical, with
+small extensions that describe when and what data nodes need to
 persist so that, in the event of a restart, the node can
 operate as if nothing happened.
 
 Although this approach is sufficient for the general use case, in
-certain security sensitive contexts it is not. In particular,
+certain security sensitive contexts it is not\bsd{Add a cue for
+performance focused systems}. In particular,
 \acp{TEE} are deployed in a highly adversarial model, where the
 control over the persistent storage is limited, especially so in
-the event of a restart.
-
-Networked services implemented inside \acp{TEE} like ARM TrustZone~\cite{armTZ}, AMD SEV-SNP~\cite{amdsev,
+the event of a restart. Networked services implemented inside \acp{TEE} like ARM TrustZone~\cite{armTZ}, AMD SEV-SNP~\cite{amdsev,
   amdsev-snp}, Intel SGX~\cite{intelsgx}, or the future Intel
 TDX~\cite{inteltdx} and ARM CCA~\cite{arm-cca} can similarly benefit
 from replication.  Replicated \ac{TEE}-based systems aim to combine the
@@ -139,10 +143,13 @@ of data. \ac{TEEMS} is used with one or more untrusted cloud storage
 services. \ac{TEEMS} maintains metadata for each data item (including the
 encryption key, authentication code, latest version number and
 policy), while ensuring strong security and enabling concurrent
-sharing of data. \ac{R2-S2} is a replicated key value store that
-leverages the \ac{RR} model to extract higher throughput while
-retaining the strong reliability expected of a persistent
+sharing of data. \ac{R2-S2} is a replicated key value store built
+using regular nodes (i.e. without TEEs or other security
+mechanisms) that leverages the \ac{RR} model with the objective
+of extracting higher throughput while retaining the strong reliability expected of a persistent
 replicated system.
+
+\section{Contributions}
 
 Our contributions include:
 \begin{enumerate}
@@ -167,6 +174,23 @@ Our contributions include:
     \item An extensive experimental evaluation of the \ac{R2-S2}
         system.
 \end{enumerate}
+
+
+% #############################################################################
+\section{Organization of the Document}
+
+The rest of the thesis is organized as follows:
+\Cref{chap:related} covers related work. In \cref{chap:model} we
+formalize the \ac{RR} model and show the derivation of
+\ac{RR}-based quorum systems and protocols. \Cref{chap:tee}
+describes the usage of \acp{TEE} with \ac{RR}, with the
+accompanying design and evaluation of \ac{TEEMS}. In
+\cref{chap:storage} we present the design of
+\ac{R2-S2} and its experimental evaluation.
+\Cref{chap:conclusion} summarizes our work and presents possible
+avenues for future work.
+
+% #############################################################################
 
 \if 0 % paper intro
 
@@ -329,17 +353,3 @@ experimentally in \S\ref{sec:eval}, survey related work in
 
 
 \fi
-
-% #############################################################################
-\section{Organization of the Document}
-
-The rest of the thesis is organized as follows:
-\Cref{chap:related} covers related work. In \cref{chap:model} we
-formalize the \ac{RR} model and show the derivation of
-\ac{RR}-based quorum systems and protocols. \Cref{chap:tee}
-describes the usage of \acp{TEE} with \ac{RR}, with the
-accompanying design and evaluation of \ac{TEEMS}. In
-\cref{chap:storage} we present the design of
-\ac{R2-S2} and its experimental evaluation.
-\Cref{chap:conclusion} summarizes our work and presents possible
-avenues for future work.
