@@ -151,6 +151,15 @@ replicated system.
 
 \section{Contributions}
 
+In the \ac{TEE} context, we implemented the read/write
+register and the \ac{SMR} protocols in three fault models:
+\ac{CFT}, \ac{RR} and \ac{BFT}, and a prototype for \ac{TEEMS},
+all using Intel SGX. In the storage context, we implemented
+\ac{R2-S2} as a replication layer on top of a single node key
+value store. We evaluated our prototypes using both
+microbenchmarks and real-world workloads, namely
+\ac{YCSB}~\cite{ycsb}.
+
 Our contributions include:
 \begin{enumerate}
     \item The \ac{RR} fault model, which is the first to capture
