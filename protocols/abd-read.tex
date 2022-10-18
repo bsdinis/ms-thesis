@@ -1,0 +1,28 @@
+\begin{figure}[t]
+  \begin{small}
+    \textbf{Read} at client $c$
+
+    \begin{enumerate}[itemsep=0pt,parsep=0pt]
+
+    \item \textbf{send} $\textsc{read-replica}$ to all replicas
+
+    \item \textbf{wait until} received  \textbf{either} $R_Q$ replies, such that, for the highest timestamp $ht$, $ht.stable==\textsc{true}$
+       \textbf{or until} received $W_Q$ replies where the highest timestamp has $ht.stable==\textsc{false}$
+
+    \item \textbf{if} $ht.stable==\texttt{true}$ \textbf{then}\\
+        \tabto{.5cm}   \textbf{return} $\textsc{success}(ht,val(ht))$
+
+    \item \textbf{if} $\exists W_Q$ of replies with $ht$ \textbf{then}\\
+        \tabto{.5cm} \textbf{send} $\textsc{stabilize}(ht)$ to all replicas;\\
+        \tabto{.5cm} \textbf{return} $\textsc{success}(ht,val(ht))$
+    \item \textbf{send} $\textsc{write-replica}(ht,val(ht))$ to all replicas
+    \item \textbf{wait until} received $W_Q$ of \textsc{success} replies
+
+    \item \textbf{send} $\textsc{stabilize}(ht)$ to all replicas
+    \item \textbf{return} $\textsc{success}(ht,val(ht))$
+
+    \end{enumerate}
+
+  \end{small}
+  \caption{Pseudo-code for the register read operation.}\label{fig:abd-read}
+\end{figure}

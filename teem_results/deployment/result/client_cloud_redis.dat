@@ -1,0 +1,5 @@
+#begin result/client_cloud_redis confidence interval: 5% - 95%
+"Operation"                        "Redis"                      min                              max "Teems"                                                         min                              max "Teems + Name Cache"                                            min                              max "Teems + Value Cache"                                           min                              max
+get                            50.62                            50.53                            50.68                            50.51                            50.44                            50.54                            50.46                            50.38                            50.49                             0.21                             0.19                             0.24
+put                            50.69                            50.62                            50.74                           100.83                           100.74                           100.88
+#end

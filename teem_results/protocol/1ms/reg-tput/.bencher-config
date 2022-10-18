@@ -1,0 +1,83 @@
+{
+    "database_filepath": "./bench.sqlite",
+    "xy_experiments": [
+        {
+            "exp_type": "Throughput Latency 0",
+            "x_label": "Throughput",
+            "x_units": "ops/s",
+            "y_label": "Latency",
+            "y_units": "s"
+        },
+        {
+            "exp_type": "Throughput Latency 10",
+            "x_label": "Throughput",
+            "x_units": "ops/s",
+            "y_label": "Latency",
+            "y_units": "s"
+        },
+        {
+            "exp_type": "Throughput Latency 20",
+            "x_label": "Throughput",
+            "x_units": "ops/s",
+            "y_label": "Latency",
+            "y_units": "s"
+        },
+        {
+            "exp_type": "Throughput Latency 30",
+            "x_label": "Throughput",
+            "x_units": "ops/s",
+            "y_label": "Latency",
+            "y_units": "s"
+        },
+        {
+            "exp_type": "Throughput Latency 40",
+            "x_label": "Throughput",
+            "x_units": "ops/s",
+            "y_label": "Latency",
+            "y_units": "s"
+        },
+        {
+            "exp_type": "Throughput Latency 50",
+            "x_label": "Throughput",
+            "x_units": "ops/s",
+            "y_label": "Latency",
+            "y_units": "s"
+        },
+        {
+            "exp_type": "Throughput Latency 60",
+            "x_label": "Throughput",
+            "x_units": "ops/s",
+            "y_label": "Latency",
+            "y_units": "s"
+        },
+        {
+            "exp_type": "Throughput Latency 70",
+            "x_label": "Throughput",
+            "x_units": "ops/s",
+            "y_label": "Latency",
+            "y_units": "s"
+        },
+        {
+            "exp_type": "Throughput Latency 80",
+            "x_label": "Throughput",
+            "x_units": "ops/s",
+            "y_label": "Latency",
+            "y_units": "s"
+        },
+        {
+            "exp_type": "Throughput Latency 90",
+            "x_label": "Throughput",
+            "x_units": "ops/s",
+            "y_label": "Latency",
+            "y_units": "s"
+        },
+        {
+            "exp_type": "Throughput Latency 100",
+            "x_label": "Throughput",
+            "x_units": "ops/s",
+            "y_label": "Latency",
+            "y_units": "s"
+        }
+    ],
+    "linear_experiments": []
+}

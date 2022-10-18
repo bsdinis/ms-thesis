@@ -1,0 +1,5 @@
+#begin result/aws_reg confidence interval: 5% - 95%
+"Operation"                   "Crash"                              min                          max                              "RR"                              min                              max      "BFT"                              min                              max
+get                           205.92                           202.81                           208.87                           205.92                           202.90                           208.93    224.22                           223.36                           225.05
+put                           411.83                           407.68                           416.08                           411.75                           407.49                           415.96    448.94                           447.68                           450.11
+#end

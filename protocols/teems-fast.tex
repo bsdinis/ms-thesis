@@ -1,0 +1,30 @@
+\begin{figure}[t]
+  \begin{small}
+    \textbf{Write Metadata (key $k$, value $v$)}
+
+    \begin{enumerate}[itemsep=0pt,parsep=0pt]
+
+        \item \textbf{smr\_optimized\_get\_policy ($k$)} in
+            parallel with \textbf{register\_get\_version ($k$)}
+
+        \item \textbf{if} $smr\_optimized\_get\_policy$ fails \textbf{then}\\
+            \tabto{.5cm}    \textbf{fallback} to slow operation
+
+        \item \textbf{if} $eval(policy) == \textsc{access denied}$ \textbf{then}\\
+            \tabto{.5cm}    \textbf{return} $\textsc{access denied}$
+
+        \item \textbf{broadcast} \textsc{Write Replica} ($epoch$, $new\_ts$, $v$) and wait for $W_Q$ replies;
+
+        \item \textbf{return} \textsc{Success}
+    \end{enumerate}
+
+  \end{small}
+  \caption{By overlapping (and piggybacking) the optimized read
+    to the state machine to get the policy and the reading of the
+    current timestamp of the register (which is the first step of
+    the write protocol), we can run both operations in parallel,
+    since writing the value to the register only happens after
+    the policy is verified. Note that the read operation can be
+    similarly piggybacked (the value is only returned after the
+    policy check)}\label{fig:teems_fast_mixing}
+\end{figure}

@@ -1,0 +1,42 @@
+{
+    "database_filepath": "./bench.sqlite",
+    "xy_experiments": [],
+    "linear_experiments": [
+        {
+            "exp_type": "1ms Register Latency",
+            "horizontal_label": "Operation",
+            "v_label": "Latency",
+            "v_units": "s"
+        },
+        {
+            "exp_type": "1ms SMR Latency",
+            "horizontal_label": "Operation",
+            "v_label": "Latency",
+            "v_units": "s"
+        },
+        {
+            "exp_type": "AWS Register Latency",
+            "horizontal_label": "Operation",
+            "v_label": "Latency",
+            "v_units": "s"
+        },
+        {
+            "exp_type": "AWS SMR Latency",
+            "horizontal_label": "Operation",
+            "v_label": "Latency",
+            "v_units": "s"
+        },
+        {
+            "exp_type": "Register Parameter",
+            "horizontal_label": "Operation",
+            "v_label": "Latency",
+            "v_units": "s"
+        },
+        {
+            "exp_type": "SMR Parameter",
+            "horizontal_label": "Operation",
+            "v_label": "Latency",
+            "v_units": "s"
+        }
+    ]
+}

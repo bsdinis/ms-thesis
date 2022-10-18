@@ -1,0 +1,25 @@
+\begin{figure}[t]
+  \begin{small}
+    \textbf{Write (value $v$)} at client $c$
+
+    \begin{enumerate}[itemsep=0pt,parsep=0pt]
+
+    \item \textbf{send} $\textsc{read-replica}$ to all replicas
+
+    \item \textbf{wait until} received $R_Q$ replies
+
+    \item \textbf{let} $ht$ be the largest timestamp in quorum
+
+    \item \textbf{let} $new\_ts$ be $\langle ht.seqno + 1, c, \texttt{false}\rangle$
+
+    \item \textbf{send} $\textsc{write-replica}(new\_ts,v)$ to all replicas
+
+    \item \textbf{wait until} received $W_Q$ \textsc{success} replies
+
+    \item \textbf{send} $\textsc{stabilize}(ht)$ to all replicas
+    \item \textbf{return} $\textsc{success}$
+    \end{enumerate}
+
+  \end{small}
+  \caption{Pseudo-code for the register write operation.}\label{fig:abd-write}
+\end{figure}

@@ -1,0 +1,36 @@
+{
+    "database_filepath": "./bench.sqlite",
+    "xy_experiments": [],
+    "linear_experiments": [
+        {
+            "exp_type": "Client Cloud S3",
+            "horizontal_label": "Operation",
+            "v_label": "Latency",
+            "v_units": "s"
+        },
+        {
+            "exp_type": "Client Cloud Redis",
+            "horizontal_label": "Operation",
+            "v_label": "Latency",
+            "v_units": "s"
+        },
+        {
+            "exp_type": "Collocation Center",
+            "horizontal_label": "Operation",
+            "v_label": "Latency",
+            "v_units": "s"
+        },
+        {
+            "exp_type": "YCSB Redis",
+            "horizontal_label": "Operation",
+            "v_label": "Latency",
+            "v_units": "s"
+        },
+        {
+            "exp_type": "YCSB Teems",
+            "horizontal_label": "Operation",
+            "v_label": "Latency",
+            "v_units": "s"
+        }
+    ]
+}

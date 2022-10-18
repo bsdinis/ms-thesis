@@ -1,0 +1,20 @@
+\begin{figure}[t]
+  \begin{small}
+    \textbf{Execute (operation $op$)}
+
+    \begin{enumerate}[itemsep=0pt,parsep=0pt]
+
+        \item \textbf{client\_send} $\textsc{execute}(op)$ to \emph{leader}
+
+        \item \textbf{leader} assigns slot number $s$ to $op$
+
+        \item \textbf{leader\_broadcast} $\textsc{prepare}(s, op)$, after logging to disk
+
+        \item \textbf{replica\_broadcast} $\textsc{accept}(s, op)$, after logging to disk
+
+        \item \textbf{wait until} $\#accepts(s) \geq S_Q$, marks $op$ as accepted
+    \end{enumerate}
+
+  \end{small}
+  \caption{Pseudo-code for the normal case SMR operation.}\label{fig:smr-update}
+\end{figure}

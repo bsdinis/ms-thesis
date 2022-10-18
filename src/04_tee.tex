@@ -1,2 +1,706 @@
 \fancychapter{\ac{TEE} replication using the \ac{RR} model}\label{chap:tee}
 \cleardoublepage{}
+
+\bsd{Intro of the chapter:
+\begin{itemize}
+    \item Experimental evaluation of protocols in multiple fault
+        models using \acp{TEE}
+    \item How to use the RR fault model to build a secure cloud
+        storage layer
+    \item Evaluation of \ac{TEE}Ms
+\end{itemize}
+}
+
+
+\bsd{TODO
+\begin{itemize}
+    \item break down evaluation
+\end{itemize}
+}
+
+\section{Metadata service for trusted cloud storage}\label{sec:metadata}
+
+As an example application built using the protocols from
+Section~\ref{sec:protocol}, we
+designed and implemented a trusted metadata service for securing
+cloud storage, which is an important research problem by itself.
+%This section motivates and presents the design of this service.
+
+\subsection{Motivation}
+
+\acp{TEE} have enabled services like Azure Confidential
+Computing~\cite{azure-conf} and Google Confidential
+VMs~\cite{google-confVM}, where Cloud tenants can use compute services
+without trusting the platform provider.  However, the strong security
+properties from \acp{TEE} do not automatically extend to Cloud storage.
+%
+A \ac{TEE}-encapsulated metadata service, replicated for
+availability and fault-tolerance, can maintain encryption keys
+and version information for data blobs stored in untrusted Cloud
+storage.  By ensuring confidentiality, integrity, and freshness
+of the metadata, the service extends the same guarantees to
+the encrypted and versioned data blobs. Moreover, by supporting
+an atomic update operation on metadata, the service enables
+concurrent sharing of data blobs.
+%\update{Fundamentally, even assuming an efficient way for
+%storing the state of a single \ac{TEE}, this solution would still be
+%unable to support concurrent sharing between multiple \acp{TEE}. This
+%is because ensuring freshness of a single \ac{TEE}'s own state relies
+%on persistently storing a monotonic counter~\cite{ariadne,rote,ice}
+%or a top-level hash~\cite{memoir}, which can only be updated by
+%the \ac{TEE} itself.  Concurrent sharing of persistent state instead
+%requires atomic, concurrent updates of state blobs and their
+%associated metadata (e.g.\ counter).}
+
+%Plus, even the research proposals to address these limitations suffer from shortcomings such as requiring specialized hardware or an uninterruptible power supply~\cite{ice,memoir}, the inability to tolerate system-wide power failure~\cite{rote}, \pd{Given that multiple reviewers have dismissed our previous point by pointing to the ubiquity of UPSs, I wonder if we should focus on the following argument (lack of support for concurrent sharing). We already call it out as ``more fundamental'', so why not start with it and downplay the others?}
+
+We designed and implemented a replicated metadata service called
+\ac{TEEMS} (for \ac{TEE}-based Metadata Service) based on the \ac{RR} fault
+model.
+%\ac{TEEMS} can be coupled with encrypting data on an unmodified cloud storage service, and the
+\ac{TEEMS}'s replicas can be hosted in a diverse set of cloud providers for
+high availability and resilience.
+%
+\ac{TEEMS} provides a read/write interface for metadata and guarantees that
+readers always receive the metadata (e.g., encryption key) of the most
+recent version of a data blob.  \ac{TEEMS} also supports access control
+policies for metadata, and therefore allows clients to selectively
+share the associated data blobs.  The service therefore enables
+trusted storage services that extend the strong guarantees of today's
+\ac{TEE}-based cloud compute services to persistent storage. The full
+\ac{TEEMS} interface is summarized in Table~\ref{tab:teems}.
+% PD: seems unnecessary
+%The architecture is agnostic to the actual policies being implemented
+%--- UNIX-style group-based access control, more granular list-based
+%policies or even custom policies are all possible to implement in
+%\ac{TEEMS}. For simplicity, our prototype uses UNIX-style access control.
+
+\begin{table}[!t]
+    \centering
+    \renewcommand{\arraystretch}{0.9} % this reduces the vertical spacing between rows
+    \begin{small}
+    \begin{tabular}{rll}
+        \hline
+        Return Value && {Command and Arguments}\\
+        \hline
+        \{\lArg{status}\} &\eq& {\sysC{teems-init}(\lArg{client ID})}\\
+        \{\lArg{status}\} &\eq&{\sysC{teems-close}}()\\
+        \{\lArg{status}\} &\eq&{\sysC{teems-write}}(\lArg{id}, \nArg{val})\\
+        \{\lArg{status}, \nArg{val}, \lArg{ver}\} &\eq&{\sysC{teem-read}}(\lArg{id})\\
+        \{\lArg{status}\} &\eq&{\sysC{teems-delete}}(\lArg{id})\\
+        \{\lArg{status}\} &\eq&{\sysC{teems-change-policy}}(\lArg{id}, \lArg{policy-code})\\
+        \hline
+    \end{tabular}
+    \end{small}
+    \caption{\ac{TEEMS} Interface}\label{tab:teems}
+\end{table}
+
+
+\subsection{\ac{TEE}-grade cloud storage with \ac{TEEMS}}
+
+%\pd{Put more emphasis on concurrent sharing? Here it is all about freshness again.}
+Clients can use \ac{TEEMS} to lend untrusted cloud storage \ac{TEE}-level
+guarantees, by using the API in Table~\ref{tab:teems}.
+\ac{TEEMS} maintains metadata for each data blob, i.e. a short summary of
+the most recent version of a data blob, namely its hash and encryption
+key. The encrypted data blob is then stored in an ordinary cloud
+storage service. This extends the integrity, confidentiality,
+freshness and selective concurrent sharing properties of the
+metadata service to the cloud storage, while relying on the cloud
+service only for storage and availability.
+
+Concurrent sharing of mutable data fundamentally requires a
+read-modify-write operation (i.e.\ some form of SMR). However, state machine operations are significantly
+more expensive than read/write register operations. \ac{TEEMS}
+minimizes the use of state machine operations in situations where
+writers typically perform multiple updates of a data blob before
+other writers perform an update as follows.  We mediate access to
+the metadata via single writer policies, and implement policy
+changes via the more expensive read-modify-write state machine operation.
+Simply reading and updating the metadata of a blob (by the
+current writer) is implemented using efficient distributed
+register operations.  This approach ensures safe concurrent
+sharing of data blobs while minimizing the more expensive policy
+changes to cases when the writer for a blob changes.
+
+Storage operations involve the following sequence of steps.  When an
+operation to write a new data blob $d$ associated with id $i$ is
+invoked, the client library starts by generating a symmetric
+encryption key $k$. In our implementation, we use an authenticated
+encryption scheme (AES-GCM), which generates a ciphertext ($\langle d
+\rangle_k$) and a MAC ($MAC(d)$) of $d$.
+%
+The encrypted object and corresponding MAC are then stored in one
+or more untrusted cloud storage services, under a randomly
+created identifier $i_{store}$. Let $a$ be the access control
+list for the newly stored data blob $d$. After the data has been
+successfully written to untrusted storage, the library contacts
+the \ac{TEEMS} metadata service to update the metadata for id $i$:
+\[ \langle i,k,a,i_{store},MAC(d) \rangle   \]
+%
+The write operation concludes successfully after both the data
+write and the metadata update complete. Finally, the library
+deletes earlier versions of the blob from the data store.
+
+When a read for id $i$ is invoked, the client library starts by
+querying the \ac{TEEMS} service for the most recent version of the
+metadata associated with the id $i$. After retrieving the tuple
+$\langle i,k_i,i_{store},MAC(d_i) \rangle$, the client library
+then uses the id $i_{store}$ to retrieve the encrypted data from
+(one of) the untrusted storage systems. This encrypted data
+$\langle d'\rangle_{k_i}$ is read and then decrypted using $k_i$,
+obtaining $d'$ and $MAC(d')$. Finally, its integrity  is
+validated by comparing $MAC(d')$ and $MAC(d_i)$.
+
+While \ac{TEEMS} ensures the confidentiality, intgrity, and freshness of
+stored data blobs, the untrusted storage us relied upon for
+availability of data blobs. For increased availability, clients may
+storage multiple copies of a data blob (or erasure-coded fragments) at
+independent storage providers.
+%
+Finally, the access to the untrusted storage can be optimized by
+employing caching at the client. We can either cache full blobs (to
+avoid having to access the untrusted store) or name hints (for
+enabling parallel access to the metadata service and the untrusted
+store).  In either case, the metadata always has to be fetched and
+compared with the cached or retrieved version, since only the
+\ac{TEEMS} metadata service can ensure freshness of data blobs.
+
+\subsection{Leveraging different storage protocols}
+
+\ac{TEEMS} implements the metadata read/write operations efficiently using
+our \ac{RR}-tolerant ABD protocol (Section~\ref{ssec:abd}).  However,
+updating the policies stored by \ac{TEEMS} --- which enables concurrent
+ sharing --- requires a read-modify-write operation, because changing
+a policy requires reading the policy first to check if the client has
+permission to modify it.  Therefore, policy changes are implemented
+using the \ac{RR}-tolerant SMR protocol
+(Section~\ref{ssec:paxos}).  This combination of protocols allows us
+to achieve both efficient reads and writes in the normal case, and
+concurrent write sharing via atomic policy changes through state
+machine updates.
+
+In this design, the state of our state machine is an epoch number
+and an associated policy description. Crucially, the
+epoch number is also readable by the read/write protocol. As
+such, a policy change is a state machine operation which
+evaluates the current policy, replacing it with the proposed
+policy and incrementing the epoch number, if such permission is
+granted. The epoch number increment is then immediately
+visible to register operations.
+
+For reads and writes, a slow but trivially correct combination of
+the protocols would be to issue a read operation on the state
+machine to obtain the policy and then issue the register
+operation, retrying if the epoch number has advanced.
+%, as described in Figure~\ref{fig:teems_slow_correct}.
+The correctness of the combination hinges on the fact that 1) the
+policy is correctly read and enforced; and 2) by ensuring the epoch
+has not changed between checking the policy and operating on the
+register, the policy is guaranteed to be valid for that version of the
+object.
+% PD I don't think this needs to be pointed out
+%There is a danger of a livelock, which would happen if policies were
+%being constantly updated (thus forcing constant restarts). This is an
+%unlikely usage pattern of a policy change, and can be mitigated, e.g.,
+%by requiring that a policy can only be replaced after a certain number
+%of register operations succeeded.
+
+%\input{protocols/teems-slow.tex}
+\input{protocols/teems-fast.tex}
+
+%A key insight for performance, which enables fast reads and
+%writes in the absence of concurrent policy changes,
+We note, however, that the initial phase of the register operation has
+the same communication pattern as the optimized read state machine
+operation. As such, it is possible to piggyback the optimized read
+request with the first phase of the register operation, as shown in
+Figure~\ref{fig:teems_fast_mixing}. If the fast policy read succeeds,
+the policy is evaluated and the operation proceeds.  Otherwise, the
+system falls back on the slow path above. The optimization is correct
+because it is equivalent to the slower combination: the operation
+succeeds only if the policy is enforced and the register sub-operation
+only succeeds if it happens within the epoch of the policy.
+
+The client side policy evaluation and protocol execution require
+trusted computation, meaning the implementation needs to either
+rely on a \ac{TEEMS} replica as a proxy or on a client-operated \ac{TEE},
+attested by the replicas. In our description, as well as in our
+prototype implementation, we chose the former.
+
+\subsection{Deployment scenarios}
+
+\begin{figure}[t] \centering
+        %\includegraphics[width=.32\linewidth]{ps/diag-1}
+        \includegraphics[width=.32\linewidth]{ps/diag-2}
+        \includegraphics[width=.32\linewidth]{ps/diag-3}\\
+        (a) \hspace{2.7cm} (b)
+    \caption{Deployment scenarios: (a) cloud client, (b) colocation center. The shaded area represents a
+    LAN (or a data center). Latencies will be used in the evaluation.
+    $C$ is the client, $R$ is a replica and $P$ is the proxy replica.
+    }\label{fig:deployments}
+\end{figure}
+
+
+To minimize the chance of correlated faults of individual metadata
+servers, each replica can be at a different location, depending on the
+deployment scenario. For example, the \ac{TEEMS} replicas may be
+distributed over multiple administrative domains to make it less
+likely that several of them can be rolled back at any given time. One
+way to achieve this distribution is to colocate some replicas with a
+client in a datacenter, with the remaining replicas in other
+administrative domains (Figure~\ref{fig:deployments}a).  In another
+example scenario, clients execute on their own premises and wish to
+share data items stored in the Cloud with other clients, without
+trusting the Cloud. They can use \ac{TEEMS} replicas deployed at a local
+collocation center, where subsets can be physically isolated and
+operated by independent providers, possibly using storage in the same
+center (Figure~\ref{fig:deployments}b).
+
+Depending on their cost and availability needs, clients may opt to
+store a single copy on a single cloud storage service provider,
+multiple copies on independent providers, or multiple erasure coded
+fragments on independent providers. In the common case, a copy or a
+small set of fragments can be efficiently retrieved from the nearest
+providers.
+
+
+\section{Implementation}\label{sec:impl}
+
+\bsd{Massively expand}
+
+We implemented both the read/write register and SMR
+protocols in the three fault models (crash, \ac{RR}, and
+Byzantine) and the \ac{TEEMS} prototype in Intel SGX (version
+1), using C++. All prototypes were implemented using the
+same codebase, limiting the changes between prototypes to what
+was required by the protocols (e.g.\ extra protocol steps,
+different quorums). The PBFT implementation uses the standard
+optimization of using MACs instead of digital signatures.
+
+SGX applications have two separate regions of memory: the
+application (untrusted) and the enclave (trusted). In all cases,
+the application code comprises 1KLoC (mostly for bootstrap and
+interfacing with the local OS). All replicas are implemented
+using a single-threaded event loop, and take between 3KLoC (SMR)
+and 6KLoC (\ac{TEEMS}) each. Additionally, the client libraries, which
+interact with the replicas and, in the case of \ac{TEEMS}, interact
+with the untrusted storage, take up between 2KLoC (SMR) and 5KLoC
+(\ac{TEEMS}) each.
+
+
+\section{Evaluation}\label{sec:eval}
+
+\bsd{TODO, revert back to linewidth}
+\begin{figure*}[th!]
+    \centering
+    \begin{subfigure}[t]{0.24 * 10cm}
+        \includegraphics[width=\linewidth]{teem_results/protocol/1ms/lat/1ms_reg}
+        \caption{Read-write register ($1ms$)}\label{fig:1ms_reg_lat}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24 * 10cm}
+        \includegraphics[width=\linewidth]{teem_results/protocol/1ms/lat/1ms_smr}
+        \caption{State machine ($1ms$)}\label{fig:1ms_smr_lat}
+    \end{subfigure}
+    %\vskip 0.1cm
+    \begin{subfigure}[t]{0.24 * 10cm}
+        \includegraphics[width=\linewidth]{teem_results/protocol/aws/aws_reg}
+        \caption{Read-write register (AWS)}\label{fig:aws_reg_lat}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24 * 10cm}
+        \centering
+        \includegraphics[width=\linewidth]{teem_results/protocol/aws/aws_smr}
+        \caption{State machine (AWS)}\label{fig:aws_smr_lat}
+    \end{subfigure}
+    \caption{Operation latency for different protocols in
+    different network topologies}
+\end{figure*}\label{fig:protocol_lat}
+We evaluate our various implementations based on the \ac{RR} model using micro-benchmarks for protocol implementations and benchmark workloads for the full system built using those protocols. Our experiments attempt to answer the
+following questions:
+
+\begin{enumerate}
+    \item How significant is the effort to change a \ac{CFT}
+        implementation to support the \ac{RR} model?
+        (\S\ref{ssec:implementation_effort})
+    \item How do the protocols based on the \ac{RR} model
+      compare with their counterparts based on the Crash and Byzantine
+      fault models? And how does that performance behave under increased load?  (\S\ref{ssec:eval_quorum})
+    \item What is the overhead added by \ac{TEEMS} to secure a cloud storage system under different
+      deployments?  (\S\ref{ssec:eval_deploy})
+    \item What is the performance of this system  when used to store
+      metadata for a key-value store (Redis) under a benchmark
+      workload (YSCB)?
+      (\S\ref{ssec:ycsb})
+\end{enumerate}
+\bsd{TODO, revert back to linewidth}
+\begin{figure*}[th!]
+    \centering
+    \begin{subfigure}[t]{0.45 * 10cm}
+        \includegraphics[width=\linewidth]{teem_results/protocol/1ms/reg-tput/result/reg}
+        \caption{Read-write register}\label{fig:reg_tputlat}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.45 * 10cm}
+        \includegraphics[width=\linewidth]{teem_results/protocol/1ms/smr-tput/result/smr}
+        \caption{Replicated state machine}\label{fig:smr_tputlat}
+    \end{subfigure}
+    \caption{Throughput-Latency curve for different protocols}
+\end{figure*}
+
+\noindent \textbf{Experimental Setup.}
+We ran our experiments using 7 machines  with
+Intel$^\text{\textregistered}$ Xeon$^\text{\textregistered}$ E-2174G
+processors running Debian Linux version 4.19 to run the replicas,
+plus 2 machines equipped with Intel$^\text{\textregistered}$
+Xeon$^\text{\textregistered}$ Platinum 8260M processors running Debian
+Linux version 5.4: one of them to execute the clients and the other to
+host Redis.
+%
+All machines were connected to same local network. We used
+\texttt{netem}\cite{netem} to emulate different deployment scenarios:
+a local area network where all machines are connected by links whose
+latency follows a normal distribution with mean $1$ms and standard
+deviation of $\sigma = 0.5$ms (which we will refer to as the $1$ms
+topology); the deployment scenarios of Figure~\ref{fig:deployments};
+and a geo-replication scenario, based on the measured the link
+properties (latency and bandwidth) between several AWS EC2~\cite{ec2}
+instances (t2.medium or t3.medium types), located in regions spread
+across the globe (AWS topology). This setup ensures flexibility and
+experimental reproducability.
+
+In our result graphs, each data point represents the median
+measurement over $3,000$ requests (except throughput numbers as
+described belows) and the error bars show the $5^{\text{th}}$ and
+$95^{\text{th}}$ percentiles.
+
+\subsection{Code changes}\label{ssec:implementation_effort}
+
+Changing a \ac{CFT} implementation to reflect the protocol changes
+required by the \ac{RR} model requires low programming
+overhead. Mainly, the adaptation needs to handle the restart
+flag, the existence of different quorums and the mechanisms to
+prevent split brain. For the read/write register prototype, we
+modified $72$ LoC and added $211$ new ones. For the SMR
+prototype, we modified $24$ LoC and added $28$.
+
+\bsd{TODO, revert back to linewidth}
+\begin{figure}[t]
+    \centering
+    \begin{subfigure}[t]{.49 * 10cm}
+        \includegraphics[width=\linewidth]{teem_results/protocol/1ms/parameter/reg_parameter}
+        \caption{Read-write register}\label{fig:1ms_reg_lat_conf}
+    \end{subfigure}
+    \begin{subfigure}[t]{.49 * 10cm}
+        \includegraphics[width=\linewidth]{teem_results/protocol/1ms/parameter/smr_parameter}
+        \caption{State machine}\label{fig:1ms_smr_lat_conf}
+    \end{subfigure}
+    \caption{Latency for
+    different configurations and models in the $1$ms topology. \ac{CFT} uses
+    $F=3$ and
+    $RR(M_R, F, s)$ denote \ac{RR} with parameters $M_R$ and
+    $F$, with $s$ restarts.}
+\end{figure}\label{fig:protocol_parameter_lat}
+
+
+%-------------------------------------------------------------------------------
+\subsection{Protocol performance in different models}\label{ssec:eval_quorum}
+%-------------------------------------------------------------------------------
+
+
+Next, we focus on comparing the performance of both classes of protocols under different
+fault models.
+%
+We compare our adaprted read-write register with the original ABD
+protocol and the \ac{BFT} read-write register protocol described
+in~\cite{Malkhi:Reiter:BQS:98}. For SMR, we compared our protocol with
+Paxos as described by Kirsch and Amir~\cite{paxos_builders} and the
+PBFT protocol~\cite{pbft}. We fixed the fault parameter, $F= 2$ across
+quorum systems (with $M_R=2$ in the \ac{RR} quorum system),
+yielding quorums with $3$ replicas in the crash and
+\ac{RR} models and $5$ replicas in the Byzantine model.
+
+\if 0
+\begin{table}[b]
+    \centering
+    \begin{tabular}{|r || c | c | c || c | c |}
+        \hline
+        \textbf{Model}       & N & F & M$_R$ & R$_Q$ & W$_Q$\\ \hline
+        \textbf{\ac{CFT}}         & 5 & 2 &   &   3   &   3  \\
+        \textbf{\ac{RR}} & 5 & 2 & 2 &   3   &   3  \\
+        \textbf{\ac{BFT}}         & 7 & 2 &   &   5   &   5  \\ \hline
+    \end{tabular}
+    \caption{Parameters required by different fault models.}\label{table:quorum_sizes}
+\end{table}
+
+Table~\ref{table:quorum_sizes} summarizes the protocol parameters,
+which were chosen to tolerate the same number of faults across
+systems, and the resulting quorum and system sizes.
+\fi
+
+
+The results in Figures~\ref{fig:1ms_reg_lat}-~\ref{fig:aws_smr_lat}
+reflect the differences between the different fault models.  We
+observe that larger quorums make the operations slower, since the
+operation latency is bound by the latency of the slowest replica in
+the quorum. Notably, in both cases the performance of the
+\ac{RR} protocols matches that of the \ac{CFT} ones, which is to be
+expected as they have equally sized quorums. In the particular case of
+the \ac{BFT} read-write register, the digital signatures required by the
+protocol also contribute to its higher latency. Note that the overhead
+of the digital signatures is subsumed by the network latency cost in
+the AWS topology.
+
+Next, we measure how the performance of different quorum systems
+degrades as the system load increases, as well as the maximum
+throughput obtained. In the experiment, we vary the offered load by
+increasing the number of concurrent client requests of a single type,
+and measure both latency and throughput.  Throughput is measured by
+counting the number of replies obtained per time interval.  Each
+data point corresponds to the median latency or throughput over $5$
+seconds of continuous load after a warm-up.
+%
+
+\bsd{TODO, revert back to linewidth}
+\begin{figure*}[t]
+    \centering
+    \begin{subfigure}[t]{0.24 * 10cm}
+        \centering
+        \includegraphics[width=\linewidth]{teem_results/deployment/result/client_cloud_s3}
+        \caption{Client in the Cloud w/ S3}\label{fig:cloud_client_s3}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24 * 10cm}
+        \centering
+        \includegraphics[width=\linewidth]{teem_results/deployment/result/client_cloud_redis}
+        \caption{Client in the Cloud w/ Redis}\label{fig:cloud_client_remote_redis}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24 * 10cm}
+        \centering
+        \includegraphics[width=\linewidth]{teem_results/deployment/result/collocation_center}
+        \caption{Colocation Center w/ Redis}\label{fig:coloc_redis}
+    \end{subfigure}
+    \caption{Latency in different deployment scenarios. The
+    ``s3'' and ``redis'' bars refer to direct accesses to the
+    untrusted storage, providing a performance baseline without
+    rollback protection. ``teems'' refers to accesses without
+    caching. ``teems + name cache'' and ``teems +
+    blob cache'' refer to accesses where the name and blob
+    caches had a hit, respectively.}
+\end{figure*}
+%
+Figure~\ref{fig:reg_tputlat} shows that
+the read-write register with the \ac{RR} configuration achieves a maximum
+throughput of approximately $200$ and $110$ Kops/s for reads and
+writes, respectively, being matched by the \ac{CFT} register, as
+expected. The \ac{BFT} register has significantly lower throughput,
+peaking at approximately $30$ and $2$ Kops/s for reads and
+writes, respectively, a result of larger quorums and expensive
+digital signatures.
+
+In Figure~\ref{fig:smr_tputlat} we can again observe that the \ac{CFT} and
+\ac{RR} protocols behave comparably, peaking at
+approximately $65$ and $200$ Kops/s for updates and optimized
+reads, respectively. The \ac{BFT} protocol peaks at $20$ and $160$
+Kops/s for updates and optimized reads, respectively. This is due
+to both larger quorums and the extra protocol round of PBFT.
+
+In the preceding experiments, the crash and
+\ac{RR} protocols used equally sized quorums, and as such
+had very similar performance. However, as
+discussed in Sections~\ref{sec:model} and~\ref{sec:protocol},
+the \ac{RR} model has asymmetric quorums, which lends
+itself to faster reads (at the expense of slower writes).
+Moreover, in the preceding experiments the number of restarts has
+been set to $0$, as this is the common case. To better explore
+the configuration space of \ac{RR} quorums and their
+performance difference to \ac{CFT}, we reran the latency experiments
+from Figures~\ref{fig:1ms_reg_lat}--\ref{fig:1ms_smr_lat}, but with
+different quorum configurations. In
+Figures~\ref{fig:1ms_reg_lat_conf}--\ref{fig:1ms_smr_lat_conf}, we can
+observe that, by leveraging the smaller quorums of \ac{RR}, read
+operations become faster than their equivalents in \ac{CFT}, at the
+expense of more expensive writes. Moreover, as the number of
+restarts increases, the difference to \ac{CFT} shrinks, and
+eventually \ac{CFT} reads outperform \ac{RR}, in
+the uncommon case where most replicas have just restarted and
+have yet to run their recovery protocol. Similarly, as the number
+of restarts increases, write/update operations also become more
+expensive (as they require read quorums in some steps).
+
+Overall, the results show that \ac{RR} has very close performance
+to \ac{CFT}, while offering rollback protection and better read performance
+in some configurations, in the common case with few restarts.
+Compared to \ac{BFT}, \ac{RR} offers significantly better performance
+due to smaller quorums than \ac{BFT} and, for read-write, the lack of
+digital signatures.
+
+\if 0
+\begin{table}[t]\scriptsize
+    \centering
+    \hskip-.5cm
+    \begin{tabular}{| c || c | c | c | c | c |}
+                \hline
+                \textbf{Storage}        & 100B       & 1KB           & 10KB            & 100KB           & 1MB                \\ \hline
+                %\textbf{FS}             & $.05/.11   $ & $ .05/.11   $   & $ .06/.13   $   & $ .09/.26   $   & $ .38/.38    $ \\ \hline
+                \textbf{Rds} 0ms      & $.42/.42   $ & $ .40/.41   $   & $ .40/.42   $   & $ .78/.8    $   & $ 4.53/4.67  $ \\ \hline
+                \textbf{Rds} 10ms     & $10.5/10.5 $ & $ 10.6/10.6 $   & $ 10.6/10.6 $   & $ 10.9/10.8 $   & $ 14.7/15.0  $ \\ \hline
+                \textbf{Rds} 50ms     & $50.5/50.5 $ & $ 50.5/50.5 $   & $ 50.6/50.6 $   & $ 50.9/50.9 $   & $ 54.8/54.8  $ \\ \hline
+                \textbf{S3}             & $37.4/74.3 $ & $ 39.6/80.0 $   & $ 39.8/90.2 $   & $ 42.9/84.5 $   & $ 71.8/129.6 $ \\ \hline
+    \end{tabular}
+    \caption{Untrusted storage read/write latency (ms). Redis is
+    abbreviated to Rds}
+    \label{table:ustor_baseline}
+\end{table}
+\fi
+
+
+%-------------------------------------------------------------------------------
+\subsection{\ac{TEEMS}-based storage}\label{ssec:eval_deploy}
+%-------------------------------------------------------------------------------
+Next, we focus on understanding the performance of our example
+application, the  \ac{TEEMS}-based secure storage service, under
+different deployments, which differ in the relative location of
+the client, the metadata servers, and the type and location of
+the untrusted storage. In this set of experiments, our baselines
+are the untrusted
+storage systems being used in each situation, namely Amazon S3 and an
+instantiation of Redis on our local cluster, to which we optionally
+add a variable  latency on the
+access link.
+%
+\if 0
+Table~\ref{table:ustor_baseline} shows
+the performance of our baseline reads and writes
+(averaged over $1,000$ operations with a random interleaving) for object sizes of 100B, 1KB,
+10KB, 100KB, 1MB\@. The results show that
+Redis is faster than S3, and that
+object size has a significant impact on performance only above
+100KB\@. For the remaining experiments we fix this size to
+$10$KB\@.
+\fi
+%
+% DO NOT DELETE: table without rounding
+%\begin{table*}[t]
+%    \centering
+%    \begin{minipage}{0.495\textwidth}
+%        \caption{Untrusted Storage Median Latency ($ms$): Read}
+%        \begin{tabular}{|c || c | c | c | c | c |}
+%            \hline
+%            \textbf{Storage}        & 100B  & 1KB   & 10KB  & 100KB & 1MB\\ \hline
+%            \textbf{FS}             & .05116 & .05181 & .05894 & .08858 & .3791\\ \hline
+%            \textbf{Redis 0ms}      & .4169 & .4003 & .3971 & .7802 & 4.535\\ \hline
+%            \textbf{Redis 10ms}     & 10.534 & 10.584 & 10.580 & 10.918 & 14.678\\ \hline
+%            \textbf{Redis 50ms}     & 50.530 & 50.545 & 50.606 & 50.947 & 54.783\\ \hline
+%            \textbf{S3}             & 37.442 & 39.639 & 39.806 & 42.948 & 71.789\\ \hline
+%        \end{tabular}
+%        \label{table:ustor_baseline_rd}
+%    \end{minipage}
+%    \begin{minipage}{0.495\textwidth}
+%        \caption{Untrusted Storage Median Latency ($ms$): Write}
+%        \begin{tabular}{|c || c | c | c | c | c |}
+%            \hline
+%            \textbf{Storage}        & 100B  & 1KB   & 10KB  & 100KB & 1MB\\ \hline
+%            \textbf{FS}             & .1099 & .1109 & .1288 & .2571 & .3791045\\ \hline
+%            \textbf{Redis 0ms}      & .4206 & .4082 & .4180 & .8633 & 4.668\\ \hline
+%            \textbf{Redis 10ms}     & 10.540 & 10.602 & 10.552 & 10.832 & 14.985\\ \hline
+%            \textbf{Redis 50ms}     & 50.538 & 50.544 & 50.582 & 50.914 & 54.810\\ \hline
+%            \textbf{S3}             & 74.344 & 80.022 & 90.157 & 84.537 & 129.618\\ \hline
+%        \end{tabular}
+%        \label{table:ustor_baseline_wr}
+%    \end{minipage}
+%\end{table*}
+%
+We consider three representative deployment scenarios, illustrated in
+Figure~\ref{fig:deployments}.
+
+\if 0
+\noindent \textit{a) Distributed Metadata Service.}
+In this fully distributed deployment (Figure~\ref{fig:deployments}a),
+each metadata server is in a different network, all separated by
+$50$ms ($\sigma = 5$ms). The client uses S3 for data storage. Setting
+$R = 1$ is appropriate, since all nodes are in separate
+administrative domains.
+\fi
+
+\noindent \textit{a) Client in the Cloud.}
+In this deployment (Figure~\ref{fig:deployments}a), the client is
+co-located with three metadata servers and the remaining four servers
+are in another datacenter.  We use two variants of storage: a
+remote Redis deployment, and S3.
+
+\noindent \textit{b) Collocation Center.}
+In this scenario (Figure~\ref{fig:deployments}b), all metadata
+servers and the Redis deployment are in the same collocation center, being hosted by different cloud
+providers.
+
+In both cases, the largest administrative domain has $4$
+replicas, while at most $2$ replicas are expected to crash
+in a correlated fashion. As such, we consider $M_R = 4$ and $F= 2$.
+
+From Figures~\ref{fig:cloud_client_s3}--\ref{fig:coloc_redis}, we
+conclude that: 1) \ac{TEEMS} performance depends heavily on the deployment
+scenario (in particular on the existence of local read quorums, which
+are enabled by \ac{RR}); 2) name caching is effective at masking
+the overhead of accessing the metadata store; 3) blob caching, when
+combined with local read quorums, allows for local reads of both data
+and metadata, outperforming the baseline.
+
+\if 0
+In Figures~\ref{fig:cloud_client_s3}--\ref{fig:coloc_redis}, we
+can observe that the relative overhead for using \ac{TEEMS} (without caches) depends on the speed
+of the data store: $94\%$ (reads) and $96.5\%$ (writes) for Redis in
+the collocation centre setting, $0.1\%$ (reads) and $98.9\%$ (writes) for Redis
+and $4.6\%$ (reads) and $52.2\%$ (writes) for S3 in the client in
+the cloud setting.
+%
+The latency for fetching metadata from \ac{TEEMS} depends strongly on
+the existence of a local read quorum and on the wide-area latencies
+for accessing remote \ac{TEEMS} replicas, which are conservatively high in the
+Client-in-the-Cloud scenarios, and modest in the Collocation Center scenario.
+%
+Caching is effective on read operations. In fact, blob caching
+performs comparably to --- and in some
+cases, outperforms --- the baseline when the data
+access takes longer than the metadata fetch, as shown in
+Figures~\ref{fig:cloud_client_s3} and
+\ref{fig:cloud_client_remote_redis}. In these deployments, we also
+verify that name caching masks the remote access required by reads of
+unstable values. Contrary to blob caching, name caching cannot outperform the
+baseline. However, it requires far less client storage than blob
+caching, which in some scenarios may be impractical.
+\fi
+
+\subsection{\ac{TEEMS}-based storage running \ac{YCSB}}\label{ssec:ycsb}
+
+Next, we compare \ac{TEEMS} with using only
+Redis, on the \ac{YCSB} benchmark workloads. We deployed \ac{TEEMS} in the
+Client in the Cloud setting with Redis, using name caches. We use all six core workloads
+of \ac{YCSB} (A--F), which have different key distributions and read/write
+ratios. The size of the objects varies between 100B and 1KB, depending
+on the workload and the overall size of the database is of
+1000 1KB objects.
+%
+The results in Figures~\ref{fig:ycsb_teems} and~\ref{fig:ycsb_redis}
+show that writes incur a $2\times$ overhead, which is expected since
+the Redis access must be preceded by the \ac{TEEMS} metadata access. In
+contrast, reads perform comparably to the baseline, due to local
+read quorums and effective usage of the cache.
+
+
+\bsd{TODO: revert back to linewidth}
+\begin{figure}[t]
+    \centering
+    \begin{subfigure}[t]{0.49 * 10cm}
+        \centering
+        \includegraphics[width=\linewidth]{teem_results/deployment/result/ycsb_redis}
+        \caption{Redis baseline}\label{fig:ycsb_redis}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.49 * 10cm}
+        \centering
+        \includegraphics[width=\linewidth]{teem_results/deployment/result/ycsb_teems}
+        \caption{\ac{TEEMS} + Redis}\label{fig:ycsb_teems}
+    \end{subfigure}
+    \caption{Latency with \ac{YCSB} workloads}
+\end{figure}
+
+%\pd{I think here we need a strong closing statement with the key take-away points from the evaluation.}
+%\subsection{Evaluation Summary}
+%\bsd{TODO}

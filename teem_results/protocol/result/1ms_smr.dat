@@ -1,0 +1,5 @@
+#begin result/1ms_smr confidence interval: 5% - 95%
+"Operation"                               "Crash"                              min                              max                         "RR"                              min                              max                                    "BFT"                            min                              max
+"optimized read"                           1.12                             0.80                             1.44                             1.13                             0.81                             1.45                                   1.26                             1.00                             1.55
+"update"                                   2.14                             1.47                             2.81                             2.23                             1.54                             2.92                                   2.80                             2.29                             3.29
+#end

@@ -1,0 +1,5 @@
+#begin result/aws_smr confidence interval: 5% - 95%
+"Operation"                       "Crash"                              min                              max                          "RR"                              min                              max        "BFT"                              min                              max
+"optimized read"                  205.82                           202.87                           208.86                           205.86                           202.91                           208.66      224.11                           223.29                           224.96
+"update"                          281.34                           280.45                           282.21                           281.36                           280.49                           282.20      412.47                           411.89                           413.05
+#end

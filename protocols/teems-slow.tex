@@ -1,0 +1,23 @@
+\begin{figure}[t]
+  \begin{small}
+    \textbf{Write Metadata (key $k$, value $v$)}
+
+    \begin{enumerate}[itemsep=0pt,parsep=0pt]
+
+        \item \textbf{smr\_get\_policy ($k$)}
+
+        \item \textbf{if} $eval(policy) == \textsc{access denied}$ \textbf{then}\\
+            \tabto{.5cm}    \textbf{return} $\textsc{access denied}$
+
+        \item \textbf{register\_write ($k$, $v$, $epoch$)}
+
+        \item \textbf{if} $\textsc{epoch changed}$ \textbf{then}\\
+            \tabto{.5cm}    \textbf{restart operation}
+
+        \item \textbf{return} \textsc{Success}
+    \end{enumerate}
+
+  \end{small}
+  \caption{Slow but trivially correct mixing of the protocols.
+    The read operation is in all aspects similar.}\label{fig:teems_slow_correct}
+\end{figure}

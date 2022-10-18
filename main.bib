@@ -771,3 +771,203 @@ series = {PODC '07}
     pages = {463–492},
     numpages = {30}
 }
+
+@techreport{polynomial-communication,
+  title={Polynomial end-to-end communication},
+  author={Awerbuch, Baruch and Mansour, Yishay and Shavit, Nir},
+  year={1989},
+  institution={MASSACHUSETTS INST OF TECH CAMBRIDGE LAB FOR COMPUTER SCIENCE}
+}
+
+@article{crash-recovery,
+  title={A formal model of crash recovery in a distributed system},
+  author={Skeen, Dale and Stonebraker, Michael},
+  journal={IEEE Transactions on Software Engineering},
+  number={3},
+  pages={219--228},
+  year={1983},
+  publisher={IEEE}
+}
+
+@inproceedings{perfect-failure-impossible,
+  title={On the impossibility of implementing perpetual failure detectors in partially synchronous systems},
+  author={Larrea, Mikel and Fern{\'a}ndez, Antonio and Ar{\'e}valo, Sergio},
+  booktitle={Proceedings 10th Euromicro Workshop on Parallel, Distributed and Network-based Processing},
+  pages={99--105},
+  year={2002},
+  organization={IEEE}
+}
+
+@article{byz_fault_tolerant,
+author = {Abd-El-Malek, Michael and Ganger, Gregory R. and Goodson, Garth R. and Reiter, Michael K. and Wylie, Jay J.},
+title = {Fault-Scalable Byzantine Fault-Tolerant Services},
+year = {2005},
+issue_date = {December 2005},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {39},
+number = {5},
+issn = {0163-5980},
+url = {https://doi.org/10.1145/1095809.1095817},
+doi = {10.1145/1095809.1095817},
+abstract = {A fault-scalable service can be configured to tolerate increasing numbers of faults without significant decreases in performance. The Query/Update (Q/U) protocol is a new tool that enables construction of fault-scalable Byzantine fault-tolerant services. The optimistic quorum-based nature of the Q/U protocol allows it to provide better throughput and fault-scalability than replicated state machines using agreement-based protocols. A prototype service built using the Q/U protocol outperforms the same service built using a popular replicated state machine implementation at all system sizes in experiments that permit an optimistic execution. Moreover, the performance of the Q/U protocol decreases by only 36% as the number of Byzantine faults tolerated increases from one to five, whereas the performance of the replicated state machine decreases by 83%.},
+journal = {SIGOPS Oper. Syst. Rev.},
+month = {oct},
+pages = {59–74},
+numpages = {16},
+keywords = {services, replicated state machines, byzantine fault-tolerance, quorums, fault-scalability}
+}
+
+@inproceedings{hq,
+author = {Cowling, James and Myers, Daniel and Liskov, Barbara and Rodrigues, Rodrigo and Shrira, Liuba},
+title = {HQ Replication: A Hybrid Quorum Protocol for Byzantine Fault Tolerance},
+year = {2006},
+isbn = {1931971471},
+publisher = {USENIX Association},
+address = {USA},
+abstract = {There are currently two approaches to providing Byzantine-fault-tolerant state machine replication: a replica-based approach, e.g., BFT, that uses communication between replicas to agree on a proposed ordering of requests, and a quorum-based approach, such as Q/U, in which clients contact replicas directly to optimistically execute operations. Both approaches have shortcomings: the quadratic cost of inter-replica communication is un-necessary when there is no contention, and Q/U requires a large number of replicas and performs poorly under contention.We present HQ, a hybrid Byzantine-fault-tolerant state machine replication protocol that overcomes these problems. HQ employs a lightweight quorum-based protocol when there is no contention, but uses BFT to resolve contention when it arises. Furthermore, HQ uses only 3f + 1 replicas to tolerate f faults, providing optimal resilience to node failures.We implemented a prototype of HQ, and we compare its performance to BFT and Q/U analytically and experimentally. Additionally, in this work we use a new implementation of BFT designed to scale as the number of faults increases. Our results show that both HQ and our new implementation of BFT scale as f increases; additionally our hybrid approach of using BFT to handle contention works well.},
+booktitle = {Proceedings of the 7th Symposium on Operating Systems Design and Implementation},
+pages = {177–190},
+numpages = {14},
+location = {Seattle, Washington},
+series = {OSDI '06}
+}
+
+@article{zyzzyva,
+author = {Kotla, Ramakrishna and Alvisi, Lorenzo and Dahlin, Mike and Clement, Allen and Wong, Edmund},
+title = {Zyzzyva: Speculative Byzantine Fault Tolerance},
+year = {2010},
+issue_date = {December 2009},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {27},
+number = {4},
+issn = {0734-2071},
+url = {https://doi.org/10.1145/1658357.1658358},
+doi = {10.1145/1658357.1658358},
+abstract = {A longstanding vision in distributed systems is to build reliable systems from unreliable components. An enticing formulation of this vision is Byzantine Fault-Tolerant (BFT) state machine replication, in which a group of servers collectively act as a correct server even if some of the servers misbehave or malfunction in arbitrary (“Byzantine”) ways. Despite this promise, practitioners hesitate to deploy BFT systems, at least partly because of the perception that BFT must impose high overheads.In this article, we present Zyzzyva, a protocol that uses speculation to reduce the cost of BFT replication. In Zyzzyva, replicas reply to a client's request without first running an expensive three-phase commit protocol to agree on the order to process requests. Instead, they optimistically adopt the order proposed by a primary server, process the request, and reply immediately to the client. If the primary is faulty, replicas can become temporarily inconsistent with one another, but clients detect inconsistencies, help correct replicas converge on a single total ordering of requests, and only rely on responses that are consistent with this total order. This approach allows Zyzzyva to reduce replication overheads to near their theoretical minima and to achieve throughputs of tens of thousands of requests per second, making BFT replication practical for a broad range of demanding services.},
+journal = {ACM Trans. Comput. Syst.},
+month = {jan},
+articleno = {7},
+numpages = {39},
+keywords = {output commit, speculative execution, Byzantine fault tolerance, replication}
+}
+
+@article{time_efficient_abd,
+  title={Time-efficient read/write register in crash-prone asynchronous message-passing systems},
+  author={Most{\'e}faoui, Achour and Raynal, Michel and Roy, Matthieu},
+  journal={Computing},
+  volume={101},
+  number={1},
+  pages={3--17},
+  year={2019},
+  publisher={Springer}
+}
+
+
+@article{fast-paxos,
+  title={Fast paxos},
+  author={Lamport, Leslie},
+  journal={Distributed Computing},
+  volume={19},
+  number={2},
+  pages={79--103},
+  year={2006},
+  publisher={Springer}
+}
+
+@article{disk-paxos,
+  title={Disk paxos},
+  author={Gafni, Eli and Lamport, Leslie},
+  journal={Distributed Computing},
+  volume={16},
+  number={1},
+  pages={1--20},
+  year={2003},
+  publisher={Springer}
+}
+
+@article{paxos-simple,
+  title={Paxos made simple},
+  author={Lamport, Leslie and others},
+  journal={ACM Sigact News},
+  volume={32},
+  number={4},
+  pages={18--25},
+  year={2001}
+}
+
+@inproceedings{egalitarian-paxos,
+  title={Egalitarian paxos},
+  author={Moraru, Iulian and Andersen, David G and Kaminsky, Michael},
+  booktitle={ACM Symposium on Operating Systems Principles},
+  year={2012}
+}
+
+@inproceedings{gaios,
+  title={Paxos replicated state machines as the basis of a high-performance data store},
+  author={Bolosky, William J and Bradshaw, Dexter and Haagens, Randolph B and Kusters, Norbert P and Li, Peng},
+  booktitle={Proc. NSDI’11, USENIX Conference on Networked Systems Design and Implementation},
+  pages={141--154},
+  year={2011}
+}
+
+@article{recovery-paxos,
+  author={Kończak, Jan and Wojciechowski, Paweł T. and Santos, Nuno and Żurkowski, Tomasz and Schiper, André},
+  journal={IEEE Transactions on Dependable and Secure Computing},
+  title={Recovery Algorithms for Paxos-Based State Machine Replication},
+  year={2021},
+  volume={18},
+  number={2},
+  pages={623-640},
+  doi={10.1109/TDSC.2019.2926723}
+}
+
+@techreport{winter,
+  title={Deconstructing paxos},
+  author={Boichat, Romain and Dutta, Partha and Frolund, Svend and Guerraoui, Rachid},
+  year={2001}
+}
+
+@article{raft,
+  title={The raft consensus algorithm},
+  author={Ongaro, Diego and Ousterhout, John},
+  year={2015},
+  publisher={March}
+}
+@article{schneider-smr,
+  title={Implementing fault-tolerant services using the state machine approach: A tutorial},
+  author={Schneider, Fred B},
+  journal={ACM Computing Surveys (CSUR)},
+  volume={22},
+  number={4},
+  pages={299--319},
+  year={1990},
+  publisher={ACM New York, NY, USA}
+}
+
+@incollection{consensus-recovery,
+  title={Consensus in asynchronous distributed systems: A concise guided tour},
+  author={Guerraoui, Rachid and Hurfinn, Michel and Most{\'e}faoui, Achour and Oliveira, Riucarlos and Raynal, Michel and Schiper, Andr{\'e}},
+  booktitle={Advances in Distributed Systems},
+  pages={33--47},
+  year={2000},
+  publisher={Springer}
+}
+
+@inproceedings{bqs,
+    author = {Malkhi, Dahlia and Reiter, Michael},
+    title = {Byzantine Quorum Systems},
+    year = {1997},
+    OPTisbn = {0897918886},
+    OPTpublisher = {Association for Computing Machinery},
+    OPTaddress = {New York, NY, USA},
+    OPTurl = {https://doi.org/10.1145/258533.258650},
+    OPTdoi = {10.1145/258533.258650},
+    booktitle = {Proceedings of the Twenty-Ninth Annual ACM Symposium on Theory of Computing},
+    pages = {569–578},
+    OPTnumpages = {10},
+    OPTlocation = {El Paso, Texas, USA},
+    series = {STOC ’97}
+}
+
