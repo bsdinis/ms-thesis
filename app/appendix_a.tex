@@ -2,6 +2,241 @@
 % This is Appendix A
 % !TEX root = ../main.tex
 % #############################################################################
-\chapter{An Appendix}
-\label{chapter:appendixA}
+\chapter{Correctness Proofs}\label{chapter:appendixA}
 
+In this appendix, we provide the proofs of correctness for the
+protocols presented in the paper. The appendix is organized as
+follows:~\ref{app:quorum} presents a proof of an auxiliary
+theorem regarding \ac{RR} quorum systems;~\ref{app:register}
+contains a proof of correctness of the distributed register
+protocol; and~\ref{app:smr} a proof of correctness of the state
+machine replication protocol.
+
+\section{\ac{RR} Quorum Systems}\label{app:quorum}
+
+From the parametrization of \ac{RR} quorum systems derived
+in Section~\ref{ssec:parameters}, we can prove a theorem that
+characterizes the properties we obtain from these systems and
+their quorum sizes.
+
+\begin{theorem}\label{thrmQ}
+  The quorum system defined by arbitrary subsets with the
+    cardinalities in Equations
+    (\ref{eq:fresh},\ref{eq:ReplSize},\ref{eq:rq_size}) is a
+    Dissemination Quorum System~\cite{Malkhi:Reiter:BQS:98}.
+\end{theorem}
+
+\begin{dem}
+The D-Consistency property from Definition 5.1
+in~\cite{Malkhi:Reiter:BQS:98} follows from the fact that
+constraint in Equation~(\ref{eq:inters}) was preserved
+throughout the derivation. In particular, in the final quorum
+sizes we consider, we have that the read and a write quorum
+intersect in the following minimum number of replicas:
+
+\begin{align*}
+  W_Q + R_Q - N &=\\
+  M_R + \Delta_W + R_Q - M_R - F - \Delta_W - \Delta_N  &=\\
+  R_Q - F - \Delta_N  &=\\
+  F + \min(s, M_R) + \Delta_N + \Delta_R - F - \Delta_N  &=\\
+  \min(s, M_R) + \Delta_R  &
+\end{align*}
+
+\noindent which obeys the D-Consistency property because it
+contains at least one non-rolled back replica ($\Delta_R >
+0$), which directly implies that such a replica does not
+belong to any set $B \in \cal{B}$ according to the definition
+in~\cite{Malkhi:Reiter:BQS:98}.
+
+Similarly, the D-Availability property follows from the fact that
+the liveness equations were preserved throughout the
+derivation. In particular, in the final quorum sizes we
+consider, we have that:
+
+\begin{align*}
+    N-W_Q &=\\
+    M_R + F + \Delta_W + \Delta_N - M_R - \Delta_W &=\\
+    F + \Delta_N&
+\end{align*}
+
+and
+
+\begin{align*}
+    N-R_Q &=\\
+    M_R + F + \Delta_W + \Delta_N - F - \min(s, M_R) - \Delta_N - \Delta_R &=\\
+    M_R + \Delta_W - \Delta_R - \min(s, M_R) &\ge f'
+\end{align*}
+\noindent which holds given the read liveness conditions from
+Equation~\ref{eq:DynRavail}.
+
+\hfill\ensuremath{\Box}\vspace{2em}
+
+\end{dem}
+
+\section{Distributed Register}\label{app:register}
+
+In this section we prove the safety of the distributed register
+protocol, namely that it obeys linearizable semantics.
+
+%% \rrnote{Algorithm highlights ---
+%%     two phase read [R1, R2] + stabilize in bg /
+%%     two phase write [W1, W2] + stabilize in bg /
+%%     three phase cond-write: tentative-write/write/stabilize (in fg) [C1,C2,C3] /
+%%     write will fail if W1 sees pre-written cond-write in progress /
+%%     cond-write will abort in C1 and return fail if it sees a concurrent write or cond-write in progress /
+%%     stabilize conditions: $W_Q$ of R2 ; $W_Q$ of W2 ; $W_Q$ of C2
+%% }
+
+\subsection{Specification}
+
+The specification is simply stated as linearizability of an
+object that supports read and write operations.
+Linearizability states that there exists a sequential history (or
+linearization) of the operations that took place in a history
+of the execution of the system, such that the linearization leads
+to the same outputs according to a sequential specification, and is
+compatible with the real time precedence of the operations. More
+precisely, this can be stated as:
+
+\begin{itemize}
+    \item[] \textbf{R-L1}: there is a total order $<$ of
+        operations (reads and writes), consistent with the
+        real-time invocation/reply order (meaning that if $op_1$
+        returns before $op_2$ is invoked then $op_1 < op_2$)
+    \item[] \textbf{R-L2}: reads return the value written by the
+        most recent write according to that order.
+\end{itemize}
+
+Note that a formal proof that these properties imply linearizable semantics
+can be found in~\cite{nancy-book}.
+
+\subsection{Proof}
+
+\paragraph{R-L1}
+For proving the existence of this order, we construct the
+the total order $<$ as the
+lexicographic order of timestamps $<sequence number, id>$.
+However, this is not yet a total order, since reads will have the same
+timestamp as the operation that created the value that was returned. We
+thus add the additional constraint that reads are ordered immediately
+after the operation that wrote the value that was read. When several
+read opearations return the same value, then we order the
+reads among themselves in any total order that is compatible with the
+real-time order of invocation, i.e., with the constraint that
+if $read_1$ returns before $read_2$ is invoked then $read_1 < read_2$.
+
+Given this construction, we now need to proof that this order is
+consistent with the real-time precedence order, i.e., that if
+operation $op_2$ is invoked after operation $op_1$ returns, then
+$op_1 < op_2$.
+
+If $op_1$ is a read, then it only concludes after either writing
+back the return value to a write quorum, or reading unanimously
+from a write quorum, or being signaled by the stable flag that
+the value was previously present at a write quorum. Therefore,
+according to Theorem~\ref{thrmQ},  a
+subsequent first phase of a read or write
+($op_2$) will see that timestamp at its read
+quorum (or, given that timestamps grow monotonically at each replica, a higher one), and will therefore be serialized at a subsequent point in
+the total order either by picking a higher timestamp for writes, or by returning the same or a higher timestamp
+for reads. (In case $op_2$ is a read that returns the same timestamp,
+then it obeys the required property directly by the way that $<$ is
+constructed for that particular case.)
+
+This argument also applies when $op_1$ is a write, since the second phase of each operation
+also reaches a write quorum.
+
+\paragraph{R-L2}
+This follows directly from the way that the total order $<$ is
+constructed. In particular, reads are serialized after the write
+with the same timestamp, which is the write
+that wrote the value that is returned by the
+read.
+%% The only problem would be if the timestamp corresponded
+%% to a write that has failed, since that write
+%% must not be seen. However, we prove that this is not
+%% possible. Returning a failed write: writes only return fail
+%% if they fail in the first phase, but in this phase they only
+%% read without leaving any state at the replicas. Therefore
+%% there is no possibility of a subsequent read returning a
+%% failed write.
+
+\section{State Machine Replication}\label{app:smr}
+
+In this section, we prove the safety of the state machine
+replication protocol, again using linearizable semantics as the
+notion of correctness.
+
+\subsection{Specification}
+
+The specification is stated as linearizability of an object that
+supports read and update operations. By the definition of
+linearizability, there exists a sequential history
+(linearization) of operations that took place in the execution of
+the system. This sequential history must be compatible with the
+real time order of operations and be equivalent (i.e.,\ lead to
+the same outputs as) a sequential specification of the state machine.
+More precisely,
+it can be stated as:
+
+\begin{enumerate}
+    \item [] \textbf{SM-L1}: there is a total order $<$ of state machine operations
+        (reads and updates), consistent with the real-time
+        invocation/reply order (i.e.\ if $op_1$ returns before
+        $op_2$ is inkoved, then $op_1 < op_2$);
+
+      \item [] \textbf{SM-L2}: state machine operations return the value that results from the
+        sequential execution of the sequence of preceding operations
+        according to that order.
+\end{enumerate}
+
+As in the previous proof, the same helper theorem~\cite{nancy-book} can
+be used to show that these properties imply linearizable semantics, since
+it can apply to any atomic object, including a state machine.
+
+
+\subsection{Proof}
+
+
+\paragraph{SM-L1}
+For proving the existence of this order, we construct the
+the total order $<$ as the lexicographic order of slot numbers.
+However, this is not yet a total order, since reads will have the same
+slot number as the operation that created the value that was returned. We
+thus add the additional constraint that reads are ordered immediately
+after the operation that wrote the value that was read. When several
+read opearations return the same value, then we order the
+reads among themselves in any total order that is compatible with the
+real-time order of invocation, i.e., with the constraint that
+if $read_1$ returns before $read_2$ is invoked then $read_1 < read_2$.
+
+Given this construction, we now need to proof that this order is
+consistent with the real-time precedence order, i.e., that if
+operation $op_2$ is invoked after operation $op_1$ returns, then
+$op_1 < op_2$.
+
+If both operations are updates, this follows from the
+construction of the protocol, wherein the leader chooses the slot
+position for the update and then, by collecting a super quorum of
+accepts, guarantees that no subsequent update will be assigned to
+that position (or a lower one), and no subsequent read will see a
+lower slot number. Furthermore, for the case that the first
+operation is a read, it will require a unanimous read quorum, and
+additionally the replicas in this read quorum have not sent out
+accept messages to other replicas. Given these protocol
+mechanisms, the intersection property implied by
+Theorem~\ref{thrmQ} (read quorums intersect super quorums at a
+correct replica) ensure that there is no update committed to a
+slot number higher than the one returned in the log of any
+replica.
+
+\paragraph{SM-L2}
+This follows from the way that the total order $<$ is
+constructed. In particular, (1) reads are serialized after the
+update with the same slot number, which is the latest update
+in the sequence of updates that leads to a state of the state machine
+that corresponds to the value that is returned by the
+operation, and (2) updates are serialized according to their
+slot number order, with is also the order in which replicas execute those updates,
+leading to outputs that are the same as the sequential specification
+of the state machine.
