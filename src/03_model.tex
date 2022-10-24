@@ -143,35 +143,31 @@ external state: crash failures plus state rollback after a restart.
     \end{itemize}
 }
 
-Nodes in the \ac{RR} model are \ac{TEE} instances with external
+Nodes in the \ac{RR} model are \new{network-connected processes} with external
 persistent state. Nodes can crash at any point in their execution
 and restart at a later instant.  Additionally, nodes can suffer a
 rollback failure upon a restart, after which their externally
 stored, persistent state may be valid but stale.  After each
 restart, nodes flag their state as suspicious when replying to
 requests, signalling that they have restarted and thus may have
-been subject to a rollback. The integrity properties of \acp{TEE}
-imply that a node can reliably determine when it has executed its
+been subject to a rollback. \new{Nodes} \sout{The integrity properties of \acp{TEE}
+imply that a node} can reliably determine when it has executed its
 initialization code and thus restarted. A node stops indicating
 the suspicious flag once it is ascertained that its state is
 fresh, e.g., by ensuring that a sufficiently large number of
 other nodes have the same state (as we exemplify in
 Section~\ref{sec:protocol}).
-%PD: following doesn't belong into the definition of the fault model
-%Nodes have the option of running a verification protocol, through
-%which they can either ensure that their state is not stale, and
-%therefore clear any suspicion of being rolled back, or discover that
-%part of their state is stale, and run a recovery protocol to fix it
-%(or simply wait for it to be overwritten).
-The integrity of \acp{TEE} implies that, other than possibly holding stale
-persistent state after restarting, nodes correctly execute the
-expected code.  Figure~\ref{fig:states} illustrates the state
-transitions a \ac{TEE}-based node can go through.
+
+\new{Nodes execute the algorithm correctly.}\sout{The
+integrity of \acp{TEE} implies that, other than possibly holding stale
+persistent state after restarting, they correctly execute the
+expected code.} Figure~\ref{fig:states} illustrates the state
+transitions a node in the \ac{RR} model can go through.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\linewidth]{img/TEE_states}
-    \caption{States of a \ac{TEE} node in the \ac{RR} model. Compared
+    \includegraphics[width=\linewidth]{img/RR_states}
+    \caption{States of a node in the \ac{RR} model. Compared
       to the crash-fault model, there is an additional ``Suspicious''
       state.}\label{fig:states}
 \end{figure}
@@ -180,28 +176,32 @@ transitions a \ac{TEE}-based node can go through.
 \bsd{Move to related work?}
 
 Replication protocols make a separation between clients machines
-and replicas, where these two groups of nodes are connected by a network through which any pair of nodes may communicate, defining what is referred to as a message-passage system.
-%Our replicated \ac{TEE} system model defines a message-passing system, consisting of client machines and a group of $N$ \ac{TEE}-encapsulated processes (\emph{replicas}).
-These replicas collectively implement a
-replicated service exporting a set of operations, which clients may invoke.
-For instance, a storage system may export a simple interface with read
-and write operations, whereas a replicated database has a richer interface
-supporting SQL operations.
-To collectively implement a replicated service, replicas store their view of the current state of the system that is
-shared among multiple clients, and
-client operations are implemented by contacting a group of replicas to either query or update that state.
-In general, replication protocols leverage a
-``quorum RPC'' communication pattern~\cite{Malkhi:Reiter:BQS:98,lorenzo:framework} where a machine (either a client
-or one of the replicas) sends a message to a group of replicas and
-waits for a reply from a
-quorum. In the fault
-tolerance literature, a quorum is a set of subsets of the group of replicas,
-where these subsets have certain intersection properties that are important
-for the protocol correctness~\cite{gifford:quorums}. These intersection properties depend on the
-fault model, e.g., with crash faults it normally suffices that any two
-quorums have a non-empty intersection~---~majorities are an example of
-a quorum system with this property. Byzantine quorums, in turn, require a larger
-intersection to account for incorrect replies from malicious replicas~\cite{Malkhi:Reiter:BQS:98}.
+and replicas, where these two groups of nodes are connected by a
+network through which any pair of nodes may communicate, defining
+what is referred to as a message-passage system. These replicas
+collectively implement a replicated service exporting a set of
+operations, which clients may invoke. For instance, a storage
+system may export a simple interface with read and write
+operations, whereas a replicated database has a richer interface
+supporting SQL operations. To collectively implement a replicated
+service, replicas store their view of the current state of the
+system that is shared among multiple clients, and client
+operations are implemented by contacting a group of replicas to
+either query or update that state. In general, replication
+protocols leverage a ``quorum RPC'' communication
+pattern~\cite{Malkhi:Reiter:BQS:98,lorenzo:framework} where a
+machine (either a client or one of the replicas) sends a message
+to a group of replicas and waits for a reply from a quorum. In
+the fault tolerance literature, a quorum is a set of subsets of
+the group of replicas, where these subsets have certain
+intersection properties that are important for the protocol
+correctness~\cite{gifford:quorums}. These intersection properties
+depend on the fault model, e.g., with crash faults it normally
+suffices that any two quorums have a non-empty
+intersection~---~majorities are an example of a quorum system
+with this property. Byzantine quorums, in turn, require a larger
+intersection to account for incorrect replies from malicious
+replicas~\cite{Malkhi:Reiter:BQS:98}.
 
 \subsection{Replication in the \ac{RR} model}
 
@@ -210,43 +210,37 @@ A key insight of replication in the \ac{RR} model is to grow quorums
 We quantify this suspicion by counting, in each instance of the
 quorum RPC pattern, how many replicas indicated the suspicious
 flag, and we refer to this count as a per-RPC variable $s$.
-%\bsd{took a stab at introducing $s$ differently, as Deepak raised a lot of questions about it}
-%Our model requires that, in each instance of the quorum RPC pattern,
-%each replica must report whether it suspects that its state was rolled back. The client that gathers the
-%replies from the replicas then must count the total number
-%of these suspicions, and we refer to this value as a per-RPC
-%variable $s$, $0 \le s \le N$.
 In addition to this (dynamic) value, we also define a (static)
 maximum bound on the number of nodes that may actually
 suffer a rollback attack within the replica group, $M_R$.
 
-Note that $s$ and $M_R$ are different
-and unrelated in several respects. First, $s$ is measured by a node
-that gathers a set of replies, and therefore its value is specific to
-each invocation of an operation on a group of replicas, whereas $M_R$ is
-a constant bound that is assumed to hold for that group of replicas
+Note that $s$ and $M_R$ are different and unrelated in several
+respects. First, $s$ is measured by a node that gathers a set of
+replies, and therefore its value is specific to each invocation
+of an operation on a group of replicas, whereas $M_R$ is a
+constant bound that is assumed to hold for that group of replicas
 during the entire execution of the system. As a consequence, $s$
-cannot be set at system configuration time, whereas $M_R$ needs to be
-set by an administrator according to an expectation of the deployment
-conditions. Second, $s$ can vary from zero (common case, no recent
-replica restart) up to $N$ (simultaneous system shutdown followed by a
-restart). In contrast, $M_R$ will be parameterized according to the
-likelihood of a correlated rollback attack, which in turn depends on
-the deployment and its independence expectations. For example, one
-could deploy replicas across different administrative domains,
-in which case (and assuming
-that there is no collusion between administrators of different domains), $M_R$
-should be at least the maximum number of replicas within a single
-domain. This encompasses the worst non-colluding attack where a malicious administrator rolls back all
-the replicas in the domain simultaneously.
+cannot be set at system configuration time, whereas $M_R$ needs
+to be set by an administrator according to an expectation of the
+deployment conditions. Second, $s$ can vary from zero (common
+case, no recent replica restart) up to $N$ (simultaneous system
+shutdown followed by a restart). In contrast, $M_R$ will be
+parameterized according to the likelihood of a correlated
+rollback attack, which in turn depends on the deployment and its
+independence expectations. For example, one could deploy replicas
+across different administrative domains, in which case (and
+assuming that there is no collusion between administrators of
+different domains), $M_R$ should be at least the maximum number
+of replicas within a single domain. This encompasses the worst
+non-colluding attack where a malicious administrator rolls back
+all the replicas in the domain simultaneously.
 
-Note that the parameter $M_R$ also subsumes permanent crash faults
-(e.g., due to permanent hardware failure), since permanent crashes
-can be seen as
-a particular instance of a rollback, where we replace a
-failed node with a new one that starts from the initial
-state of the system (or fetches a recent but possibly not the
-most recent one).
+Note that the parameter $M_R$ also subsumes permanent crash
+faults (e.g., due to permanent hardware failure), since permanent
+crashes can be seen as a particular instance of a rollback, where
+we replace a failed node with a new one that starts from the
+initial state of the system (or fetches a recent but possibly not
+the most recent one).
 %
 Furthermore, we define a liveness bound $F$, i.e. the system is live
 provided that no more than $F$ replicas are temporarily unreachable at
@@ -293,15 +287,12 @@ properties that this intersection should achieve.
     the replicated state, and update (or write) operations that may
     operate on that state to create a new system state or simply overwrite
     it.
-%  read or write
-%  operations, i.e., whether the system has write liveness or read
-%  liveness.
 \end{property}
 
-Using these properties, we place constraints on the
-composition of the quorum systems. We differentiate
-read quorums, of size $R_Q$, which are sufficient to conduct read operations,
-from write quorums, of size $W_Q$, for write operations.
+Using these properties, we place constraints on the composition
+of the quorum systems. We differentiate read quorums, of size
+$R_Q$, which are sufficient to conduct read operations, from
+write quorums, of size $W_Q$, for write operations.
 
 \paragraph{Freshness.}
 
@@ -408,31 +399,34 @@ This results in these possible deployment parameters:
 \end{align}
 
 \paragraph{Atomic update operations.}
-As we mentioned, more complex systems such as replicated databases,
-instead of following a simple read/write interface,
-support rich operations that read the most recent value
-of the system \emph{and} update it with a new value derived from
-the value that was read. To achieve
-this, their protocols may need to gather both a read and write quorum (i.e.,
-$\max(R_Q, W_Q)$ replies). We dub these quorums \emph{super quorums}
-and use $S_Q$ to represent their size.
+As we mentioned, more complex systems such as replicated
+databases, instead of following a simple read/write interface,
+support rich operations that read the most recent value of the
+system \emph{and} update it with a new value derived from the
+value that was read. To achieve this, their protocols may need to
+gather both a read and write quorum (i.e., $\max(R_Q, W_Q)$
+replies). We dub these quorums \emph{super quorums} and use $S_Q$
+to represent their size.
 
 \paragraph{Quorum properties.} This derivation of the various quorum
 sizes leads to the following set of properties that \ac{RR} quorum
 systems obey (also illustrated in Figure~\ref{fig:quorums}):
 
 \begin{enumerate}
-    \item[\textbf{I1.}] Any read quorum intersects with any write quorum in at least one replica whose state was not rolled back;
-    \item[\textbf{I2.}] It is possible some pairs of read quorums do not intersect.
+    \item[\textbf{I1.}] Any read quorum intersects with any write
+        quorum in at least one replica whose state was not rolled
+        back;
+    \item[\textbf{I2.}] It is possible some pairs of read quorums
+        do not intersect.
 \end{enumerate}
 
 Using these properties, we can derive the following
 property of super quorums:
 
 \begin{enumerate}
-    \item[\textbf{I3.}] The intersection between a super
-        quorum and a quorum of any other type is non-empty and includes a replica whose state
-        has not been rolled back.
+    \item[\textbf{I3.}] The intersection between a super quorum
+        and a quorum of any other type is non-empty and includes
+        a replica whose state has not been rolled back.
 \end{enumerate}
 
 These properties, along with the fact that read quorums can be
@@ -455,9 +449,6 @@ protocols in the \ac{RR} model, as we will see next.
     disjoint, as noted by \textbf{I2}.}\label{fig:quorums}
 \end{figure}
 
-%\rr{In the following discussion, I think that in addition to claiming that this gives us good performance, we should also explain that this follows naturally from the properties of \acp{TEE}, which, unlike in traditional replicas, have a dynamic nature due to each replica determining, at runtime, if it can be certain that its state is up-to-date or not.}
-%\rr{Also in the following discussion, the discussion about the parameters has some redundancy with the last paragraph of the opening section of this section. Can we integrate the two?}
-
 \paragraph{Reflections on the parametrization of the system.}
 \ac{RR} quorums are more complex than regular
 quorum systems. They include two parameters ($M_R$ and $F$) instead of
@@ -479,50 +470,36 @@ state), but also because it allows us to extract the maximum
 performance from the system and avoid wasting resources used in
 replication.
 
-%% However, it is worthwhile to consider how $R$ and $F$ affect
-%% the properties of the system. $R$ encodes the dimension of an
-%% attack on the system. If this parameter is exceeded (i.e.\ more
-%% than $R$ replicas are rolled back), the system loses its
-%% freshness guarantees. $F$ determines the availability of the
-%% system: if more than $F$ replicas are crashed at any point of
-%% time, the system loses its liveness.
+\bsd{TODO: classify the two types of quorum systems}.
 
 \paragraph{Comparison with existing asymmetric quorum schemes.}
 
-Previous proposals for asymmetric quorum schemes differ significantly
-from \ac{RR} quorum systems.  The idea of asymmetric quorums dates back to one of the
-initial proposals for quorum systems by
-Gifford~\cite{weighted_voting}, where a replicated object has a
-certain number of votes and in order to read the value, $M_R$ votes must
-be gathered, whilst $w$ votes are required to write the value. The
-equivalent to the intersection property \textbf{I1} is guaranteed by
-ensuring that $r + w$ exceeds the total number of votes of the object.
-This use of asymmetric quorums has also been motivated by different
-goals.  In particular, asymmetric quorums have been proposed in the
-context of asymmetric trust assumptions~\cite{asymmetric_trust}, where
-each node makes its own assumptions about which nodes might be
-Byzantine. Another type of use of asymmetric quorums is to obtain
-better performance, by making the commonly used quorums smaller than
-the ones that are used less often~\cite{fp,wheat,rqs} or reducing the
-asymptotic complexity of quorums at the expense of more replicas~\cite{grid_quorums}.
-
-%, or by proposes a weighted quorum, where varying weights are assigned to each
-%replica, in such a way that more weight can be ascribed to replicas
-%with better response time, thus improving performance.  Similarly,
-%Grid quorums~\cite{grid_quorums} arrange nodes in a grid and contact a
-%row for read operations and a column for write operations leading to a
-%quorum size that is asymptotically more efficient in the number of
-%replicas, albeit at a larger replication cost: ${(F + 1)}^2$ replicas
-%for \ac{CFT}, instead of $2F + 1$.
+Previous proposals for asymmetric quorum schemes differ
+significantly from \ac{RR} quorum systems.  The idea of
+asymmetric quorums dates back to one of the initial proposals for
+quorum systems by Gifford~\cite{weighted_voting}, where a
+replicated object has a certain number of votes and in order to
+read the value, $M_R$ votes must be gathered, whilst $w$ votes
+are required to write the value. The equivalent to the
+intersection property \textbf{I1} is guaranteed by ensuring that
+$r + w$ exceeds the total number of votes of the object. This use
+of asymmetric quorums has also been motivated by different goals.
+In particular, asymmetric quorums have been proposed in the
+context of asymmetric trust assumptions~\cite{asymmetric_trust},
+where each node makes its own assumptions about which nodes might
+be Byzantine. Another type of use of asymmetric quorums is to
+obtain better performance, by making the commonly used quorums
+smaller than the ones that are used less
+often~\cite{fp,wheat,rqs} or reducing the asymptotic complexity
+of quorums at the expense of more replicas~\cite{grid_quorums}.
 
 Compared to these approaches, \ac{RR} quorums are derived from
-the dynamic nature of the number of possible rollbacks that are present in the
-system at any given moment.
-%instead of being a means to achieve a certain goal as in prior research.
-This natural construction leads to interesting properties of the
-system, namely allowing for performance to improve in the normal case
-when there are no recent replica restarts, due to the use of relatively
-small read quorums.
+the dynamic nature of the number of possible rollbacks that are
+present in the system at any given moment. This natural
+construction leads to interesting properties of the system,
+namely allowing for performance to improve in the normal case
+when there are no recent replica restarts, due to the use of
+relatively small read quorums.
 
 \section{Replication protocols}\label{sec:protocol}
 
@@ -530,50 +507,34 @@ Designing and implementing new replication protocols, as well as
 proving their correctness, is a non-trivial effort. Consequently,
 rather than building protocols for the \ac{RR} model from
 scratch, we propose a set of principles for adapting existing
-protocols to the fault model.
-%\new{with minimal effort}.
-In this section, we identify principles for this adaptation and apply
-them to existing protocols, showing that the adaptation is
-straightforward.
-% , and proving that the modified versions comply with linearizability.
+protocols to the fault model. In this section, we identify
+principles for this adaptation and apply them to existing
+protocols, showing that the adaptation is straightforward.
 
 \subsection{Principles and challenges for protocol adaptation}
 
-% 1. Starting point is crash - because behavior is correct
 When adapting existing protocols to the \ac{RR} model, it is
 convenient to start from a crash fault tolerant protocol.
-%and not a protocol for an adversarial model such as \ac{BFT}.
-Due to the integrity guarantees of \acp{TEE}, nodes observe mostly crash
-fault behavior; the only additional fault behavior is that their
-externally stored state may be stale after a restart.
+Due to the \new{correctness of execution of nodes in the \ac{RR}
+model}, nodes observe mostly crash fault behavior; the only
+additional fault behavior is that their externally stored state
+may be stale after a restart.
 
-% 2. Most important aspect is quorum adaptation
-% PD: How the nodes communicate doesn't seem relevant
-%Most distributed replication protocols follow a structure where
-%communication is conducted through a primitive called a ``quorum
-%RPC''~\cite{Malkhi:Reiter:BQS:98,lorenzo:framework}. This consists of
-%a client-driven communication with an RPC pattern, where the client
-%\update{(or a replicas acting as a client of the RPC primitive)}
-%contacts all replicas in a replica group, and waits for a quorum of
-%replies.
 Most replication protocols are quorum-based, where a client (or a
 replica acting on behalf of a client) needs to obtain responses
 from the quorum or replicas to perform an operation.  Therefore,
 an important aspect of adapting a crash fault tolerant protocol
 consists of following the quorum sizes defined in
-Section~\ref{ssec:parameters}. Similarly, reconfiguration is
-a key aspect of practical replication protocols. Quorum sizes for
+Section~\ref{ssec:parameters}. Similarly, reconfiguration is a
+key aspect of practical replication protocols. Quorum sizes for
 these reconfiguration protocols also need to be adapted
 accordingly.
-%, including the necessary adaptation to convey the boolean value corresponding to the suspicion status in each replica's reply.
 
-% 3. suspicion and recovery
 Each node must be augmented to maintain a suspicion flag. When a node
 restarts, it set the suspicion flag to true. At this point, the node
 runs a recovery subprotocol (eagerly or lazily), which is not required
 in the crash model.
-%since a restart in that model would be equivalent, e.g., to a network
-%partition that leads to a long period of message loss.
+
 While the recovery subprotocol is dependent on the specifics of
 the protocol being modified, the general method is as follows. On
 restart, a replica queries a read quorum of replicas for a digest
@@ -593,7 +554,6 @@ satisfying requests. Doing so might allow for clearing the
 suspicion flag in case of an update where the new state does not
 depend on the previous version.
 
-% 4. quorum asym
 Finally, if the adapted replication protocol is to be configured such
 that $F<M_R$, read quorums may not intersect (see quorum property
 \textbf{I2} in Section~\ref{ssec:parameters}).  Here, two disjoint
@@ -604,27 +564,9 @@ when an operation that changes the system state is still in progress
 protocols, designers must take this into account and implement
 mechanisms to ensure that a single value is reported by all read
 quorums, if required.
-%
+
 Next, we will present two example protocols that follow these
 principles and illustrate some of the above challenges.
-
-%% Handling asymmetric quorums is more intricate. The main issue is
-%% that read quorums do not necessarily intersect, making it
-%% possible to have clients reading different values depending on
-%% which quorum they contact, thus breaking consistency. Note that
-%% this \emph{split-brain} syndrom is not a \emph{direct}
-%% consequence of the fault model, but rather of the resulting
-%% quorum system which is naturally asymmetric. The techniques used
-%% to solve this problem are generalizable to asymmetric
-%% non-intersecting quorums in crash fault tolerant protocols.
-
-%% Although having an ultimately protocol-dependant solutions, the
-%% approach is common. The split-brain situation described above is
-%% always a result of an in-progress write, meaning we need to
-%% identify when this situation is actually occuring and employ
-%% mechanisms to make sure that only one of the disjoint
-%% read-quorums can return a value (and the other read operations
-%% would need to fall back on larger quorums).
 
 \subsection{Read-write register}\label{ssec:abd}
 
@@ -728,12 +670,12 @@ be immediately returned, since the stable flag indicates that it
 has been written to a write quorum and will therefore be seen by
 any subsequent read quorum, thus obeying linearizable semantics.
 
-%The stabilization phase can
-%occur at any point after the write concludes. Considering an eager
-%approach, the stabilization would occur right after the value has been
-%written. We follow a lazier option, triggering the stabilization only
-%after the first read (thus avoiding stabilizing a value which is never
-%read).
+The stabilization phase can
+occur at any point after the write concludes. Considering an eager
+approach, the stabilization would occur right after the value has been
+written. We follow a lazier option, triggering the stabilization only
+after the first read (thus avoiding stabilizing a value which is never
+read).
 
 \paragraph{Proof sketch.}
 We prove the correctness of the resulting protocol in the
@@ -749,7 +691,6 @@ other reads that precede them in real time order).  Then we prove
 that this meets both consistency requirements above: for the
 output of reads, this is by construction due to reads being
 ordered after the corresponding writes; then,
-%in a more intricate part of the proof,
 the consistency with the real time request order follows from the
 fact that the quorum intersection property \textbf{I1} from
 Section~\ref{sec:model} implies that reads see the effects of
@@ -774,24 +715,6 @@ do not allow, for instance, the simultaneous restart of all the
 replicas --- only up to $F$ of them can restart at a time. We next
 present the adaptation of this protocol to \ac{RR}, focusing on
 the normal case operation for conciseness.
-%First, we explain this normal case protocol, adapted to use
-%\ac{RR} quorums,
-%and then we highlight how we extended the protocol with a read-only
-%optimization to leverage the properties of the
-%\ac{RR} model.
-
-
-%% n this section is to adapt \emph{one}
-%% existing Paxos variant to showcase the changes required by the
-%% \ac{RR} model. To this end, we chose a
-%% Consequently, we use as a starting point a
-%% variant focused on simplicity: \emph{Paxos for System
-%% Builders}~\cite{paxos_builders}. Although leader election and
-%% view changes are important and intricate parts of any
-%% Paxos-related algorithm, we do not approach them, because the
-%% \ac{RR} model has no impact on them and they add
-%% considerable complexity to the exposition. This way, the focus is
-%% kept on the fault model.
 
 \input{protocols/smr-update.tex}
 \begin{figure}[t]
@@ -815,7 +738,7 @@ that this sequence number had not been assigned yet. Once
 such a majority is gathered, replicas execute the client operation in that
 order and the leader replicas replies with the output of the operation
 to the client.
-%
+
 \if 0
 \begin{enumerate}
     \item A client sends the operation $op$ to be executed to the leader;
@@ -832,7 +755,7 @@ to the client.
       the $S_Q$ matching accepts for that slot.
 \end{enumerate}
 \fi
-%
+
 Our protocol follows directly from this protocol
 description~\cite{paxos_builders}, modifying only the quorum size
 when gathering the quorum of accept messages. When moving from
@@ -844,13 +767,6 @@ at the same time record the fact that the slot becomes taken and
 cannot be used in subsequent proposals. Thus, majorities are
 replaced with superquorums in the \ac{RR}-tolerant version of
 Paxos.
-%This explains why the
-%final protocol step gathers the largest of a read and write
-%quorum, where the larger one can be of either type, depending on
-%the number of messages that are marked as suspected.
-%Once a slot is marked as accepted and all previous slots have
-%been executed, the leader executes the operation and returns the
-%result to the client.
 
 
 \paragraph{Leveraging the \ac{RR} model.}
@@ -859,7 +775,6 @@ small read quorums enabled by the \ac{RR} model. Even
 read-only operations are serialized in the state machine, and as
 such need to update the system state, namely to fill the position
 in the sequence of operations.
-%the internal operation log where all operations are serialized.
 
 To leverage small read quorums, we adapt the read-only
 optimization described in some protocols such as PBFT~\cite{pbft} or
@@ -870,19 +785,20 @@ result of executing the read-only command against current state of the
 replicas. If the replies are unanimous, the client can return the
 value.
 
-Applying this optimization requires careful reasoning to avoid violating
-the linearizable semantics of the protocol. To understand why,
-consider the possibility
-of two successive read operations, $r_1, r_2$, where $r_1$ ends before
-$r_2$ begins, and that use quorums $Q_{R1}$ and $Q_{R2}$
-(respectively) and execute concurrently with a write $w$ that
-gathers a quorum of accepts $Q_W$. In this case, and given property \textbf{I2}
-(read quorums may not intersect), $r_1$ may see $w$ as being complete in a read quorum,
-but $r_2$ only contains replicas that have not yet gathered a write
-quorum of accepts for $w$, since those replicas might have sent but
-not yet received the necessary number of accepts.
-This would violate linearizability since $r_1$ precedes $r_2$ in real time
-but, given their outputs, they cannot be linearized in that order.
+Applying this optimization requires careful reasoning to avoid
+violating the linearizable semantics of the protocol. To
+understand why, consider the possibility of two successive read
+operations, $r_1, r_2$, where $r_1$ ends before $r_2$ begins, and
+that use quorums $Q_{R1}$ and $Q_{R2}$ (respectively) and execute
+concurrently with a write $w$ that gathers a quorum of accepts
+$Q_W$. In this case, and given property \textbf{I2} (read quorums
+may not intersect), $r_1$ may see $w$ as being complete in a read
+quorum, but $r_2$ only contains replicas that have not yet
+gathered a write quorum of accepts for $w$, since those replicas
+might have sent but not yet received the necessary number of
+accepts. This would violate linearizability since $r_1$ precedes
+$r_2$ in real time but, given their outputs, they cannot be
+linearized in that order.
 
 This is yet another occurrence of a split brain scenario, but
 the solution in this situation is different: instead of
@@ -917,7 +833,6 @@ In this case, a later read-only operation cannot revert to a
 previous state because of the protocol feature that replicas with
 pending accepts deny an optimized read.  This ensures that
 it is impossible to have a more recent state
-%(or, more precisely, current state that reflects the output of an operation)
 that could have been reflected by a preceding read/write or
 optimized read, because intersection property \textbf{I1} implies
 that at least one node from the read quorum in the later read
@@ -925,10 +840,9 @@ would have sent the accept for the operation that created the
 more recent state, since its execution requires a write quorum of
 accepts.
 
-%% Note that in the full proof we should also prove uniqueness of ts for writes
 
 \subsection{Security Properties}\label{ssec:sec_prop}
-
+\bsd{Consider moving to chapter 4}
 If the threat model for \acp{TEE} explained in
 Section~\ref{sec:fault_model} holds, the protocols described in this
 section achieve freshness, integrity and confidentiality.
