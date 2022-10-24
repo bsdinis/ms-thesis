@@ -19,6 +19,15 @@ well-established protocols: the \ac{ABD}~\cite{abd} protocol for
 a read-write register and the Paxos~\cite{paxos} protocol for
 \ac{SMR}. We conclude this chapter with a discussion.
 
+\new{We then provide a performance evaluation in the context of
+\acp{TEE} using micro-benchmarks. We compare the \ac{CFT}
+protocols with their adaptations to the \ac{RR} model and the
+equivalent counterparts in the \ac{BFT} world. This demonstrates
+the viability and usefullness of the \ac{RR} model in the context
+of \ac{TEE}-based replication, showcasing how it enables
+protocols with both correctness (otherwise only found in
+\ac{BFT}) and speed (present in \ac{CFT}-based replication)}.
+
 \section{Motivation}\label{sec:motivation}
 
 \subsection{\ac{TEE} properties}\label{ssec:tee_motivation}
@@ -857,6 +866,259 @@ guaranteed by encapsulating replicas inside the \acp{TEE}. Crucially,
 the usage of \acp{TEE} (which have integrity of the computation)
 guarantees that the protocol is followed by all replicas (even if
 they have stale data).
+
+\section{Evaluation of \ac{TEE} replication protocols}
+
+We evaluate our various implementations based on the \ac{RR}
+model using micro-benchmarks for protocol implementations and
+benchmark workloads for the full system built using those
+protocols. Our experiments attempt to answer the following
+questions:
+
+\begin{enumerate}
+    \item How significant is the effort to change a \ac{CFT}
+        implementation to support the \ac{RR} model?
+        (\S\ref{ssec:implementation_effort})
+    \item How do the protocols based on the \ac{RR} model
+      compare with their counterparts based on the Crash and Byzantine
+      fault models? And how does that performance behave under increased load?  (\S\ref{ssec:eval_quorum})
+\end{enumerate}
+
+\subsection{Implementation}\label{ssec:impl}
+
+We implemented both the read/write register and SMR protocols in
+the three fault models (crash, \ac{RR}, and Byzantine) in Intel
+SGX (version 1), using C++. All prototypes were implemented using
+the same codebase, limiting the changes between prototypes to
+what was required by the protocols (e.g.\ extra protocol steps,
+different quorums). The PBFT~\cite{pbft} implementation uses the
+standard optimization of using MACs instead of digital
+signatures.
+
+SGX applications have two separate regions of memory: the
+application (untrusted) and the enclave (trusted). In all cases,
+the application code comprises 1KLoC (mostly for bootstrap and
+interfacing with the local \ac{OS}). All replicas are implemented
+using a single-threaded event loop, and take between 4.5KLoC for
+the distributed register and 4KLoC for \ac{SMR}. Additionally, the client libraries, which
+interact with the replicas take up 5KLoC (distributed
+register) and 4KLoC (\ac{SMR}).
+
+It is important to observe that, since in the \ac{TEE} use case,
+replicas cannot generally trust clients to execute the protocol
+code correctly, our prototypes implement the driver code
+collocated with the replicas. This is only relevant in the
+distributed register case, since there is no client-side protocol
+to be executed in Paxos. A possible alternative would have been
+to implement a \ac{TEE} library that drives the register
+protocol, which all replicas would remotely attest. We chose
+not to do this, since this approach has wider applicability
+(e.g.:\ it allows clients that do not run in \ac{TEE}-enabled
+platforms to interact with a \ac{TEE} replicated system).
+
+\subsection{Evaluation}\label{sec:eval}
+
+\bsd{TODO, revert back to linewidth}
+\begin{figure*}[th!]
+    \centering
+    \begin{subfigure}[t]{0.24 * 10cm}
+        \includegraphics[width=\linewidth]{teem_results/protocol/1ms/lat/1ms_reg}
+        \caption{Read-write register ($1ms$)}\label{fig:1ms_reg_lat}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24 * 10cm}
+        \includegraphics[width=\linewidth]{teem_results/protocol/1ms/lat/1ms_smr}
+        \caption{State machine ($1ms$)}\label{fig:1ms_smr_lat}
+    \end{subfigure}
+    %\vskip 0.1cm
+    \begin{subfigure}[t]{0.24 * 10cm}
+        \includegraphics[width=\linewidth]{teem_results/protocol/aws/aws_reg}
+        \caption{Read-write register (AWS)}\label{fig:aws_reg_lat}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24 * 10cm}
+        \centering
+        \includegraphics[width=\linewidth]{teem_results/protocol/aws/aws_smr}
+        \caption{State machine (AWS)}\label{fig:aws_smr_lat}
+    \end{subfigure}
+    \caption{Operation latency for different protocols in
+    different network topologies}
+\end{figure*}\label{fig:protocol_lat}
+
+\bsd{TODO, revert back to linewidth}
+\begin{figure*}[th!]
+    \centering
+    \begin{subfigure}[t]{0.45 * 10cm}
+        \includegraphics[width=\linewidth]{teem_results/protocol/1ms/reg-tput/result/reg}
+        \caption{Read-write register}\label{fig:reg_tputlat}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.45 * 10cm}
+        \includegraphics[width=\linewidth]{teem_results/protocol/1ms/smr-tput/result/smr}
+        \caption{Replicated state machine}\label{fig:smr_tputlat}
+    \end{subfigure}
+    \caption{Throughput-Latency curve for different protocols}
+\end{figure*}
+
+\noindent \textbf{Experimental Setup.}
+We ran our experiments using 7 machines  with
+Intel$^\text{\textregistered}$ Xeon$^\text{\textregistered}$ E-2174G
+processors running Debian Linux version 4.19 to run the replicas,
+plus 2 machines equipped with Intel$^\text{\textregistered}$
+Xeon$^\text{\textregistered}$ Platinum 8260M processors running Debian
+Linux version 5.4: one of them to execute the clients and the other to
+host Redis.
+%
+All machines were connected to same local network. To emulate
+different deployment scenarios, we developed
+\texttt{sloth}\cite{sloth}, which internally uses
+\texttt{netem}\cite{netem} to implement a network topology from a
+high-level JSON description. We considered two deployment
+scenarios in these experiments: a local area network where all
+machines are connected by links whose latency follows a normal
+distribution with mean $1$ms and standard deviation of $\sigma =
+0.5$ms (which we will refer to as the $1$ms topology); the
+deployment scenarios of Figure~\ref{fig:deployments}; and a
+geo-replication scenario, based on the measured the link
+properties (latency and bandwidth) between several AWS
+EC2~\cite{ec2} instances (t2.medium or t3.medium types), located
+in regions spread across the globe (AWS topology). This setup
+ensures flexibility and experimental reproducability.
+
+In our result graphs, each data point represents the median
+measurement over $3,000$ requests (except throughput numbers as
+described belows) and the error bars show the $5^{\text{th}}$ and
+$95^{\text{th}}$ percentiles.
+
+\subsection{Code changes}\label{ssec:implementation_effort}
+
+Changing a \ac{CFT} implementation to reflect the protocol changes
+required by the \ac{RR} model requires low programming
+overhead. Mainly, the adaptation needs to handle the restart
+flag, the existence of different quorums and the mechanisms to
+prevent split brain. For the read/write register prototype, we
+modified $72$ LoC and added $211$ new ones. For the SMR
+prototype, we modified $24$ LoC and added $28$.
+
+\bsd{TODO, revert back to linewidth}
+\begin{figure}[t]
+    \centering
+    \begin{subfigure}[t]{.49 * 10cm}
+        \includegraphics[width=\linewidth]{teem_results/protocol/1ms/parameter/reg_parameter}
+        \caption{Read-write register}\label{fig:1ms_reg_lat_conf}
+    \end{subfigure}
+    \begin{subfigure}[t]{.49 * 10cm}
+        \includegraphics[width=\linewidth]{teem_results/protocol/1ms/parameter/smr_parameter}
+        \caption{State machine}\label{fig:1ms_smr_lat_conf}
+    \end{subfigure}
+    \caption{Latency for
+    different configurations and models in the $1$ms topology. \ac{CFT} uses
+    $F=3$ and $RR(M_R, F, s)$ denote \ac{RR} with parameters $M_R$ and
+    $F$, with $s$ restarts.}
+\end{figure}\label{fig:protocol_parameter_lat}
+
+
+%-------------------------------------------------------------------------------
+\subsection{Protocol performance in different models}\label{ssec:eval_quorum}
+%-------------------------------------------------------------------------------
+
+Next, we focus on comparing the performance of both classes of protocols under different
+fault models.
+%
+We compare our adaprted read-write register with the original ABD
+protocol and the \ac{BFT} read-write register protocol described
+in~\cite{Malkhi:Reiter:BQS:98}. For SMR, we compared our protocol with
+Paxos as described by Kirsch and Amir~\cite{paxos_builders} and the
+PBFT protocol~\cite{pbft}. We fixed the fault parameter, $F= 2$ across
+quorum systems (with $M_R=2$ in the \ac{RR} quorum system),
+yielding quorums with $3$ replicas in the crash and
+\ac{RR} models and $5$ replicas in the Byzantine model. The
+parametrizations are summarized in
+Table~\ref{table:quorum_sizes}.
+
+\begin{table}[b]
+    \centering
+    \begin{tabular}{|r || c | c | c || c | c |}
+        \hline
+        \textbf{Model}       & N & F & M$_R$ & R$_Q$ & W$_Q$\\ \hline
+        \textbf{\ac{CFT}}         & 5 & 2 &   &   3   &   3  \\
+        \textbf{\ac{RR}} & 5 & 2 & 2 &   3   &   3  \\
+        \textbf{\ac{BFT}}         & 7 & 2 &   &   5   &   5  \\ \hline
+    \end{tabular}
+    \caption{Parameters required by different fault models.}\label{table:quorum_sizes}
+\end{table}
+
+Table~\ref{table:quorum_sizes} summarizes the protocol parameters,
+which were chosen to tolerate the same number of faults across
+systems, and the resulting quorum and system sizes.
+
+The results in Figures~\ref{fig:1ms_reg_lat}-~\ref{fig:aws_smr_lat}
+reflect the differences between the different fault models.  We
+observe that larger quorums make the operations slower, since the
+operation latency is bound by the latency of the slowest replica in
+the quorum. Notably, in both cases the performance of the
+\ac{RR} protocols matches that of the \ac{CFT} ones, which is to be
+expected as they have equally sized quorums.
+
+Next, we measure how the performance of different quorum systems
+degrades as the system load increases, as well as the maximum
+throughput obtained. In the experiment, we vary the offered load by
+increasing the number of concurrent client requests of a single type,
+and measure both latency and throughput, keeping the message and
+object sizes fixed. Throughput is measured by
+counting the number of replies obtained per time interval.  Each
+data point corresponds to the median latency or throughput over $5$
+seconds of continuous load after a warm-up.
+%
+
+Figure~\ref{fig:reg_tputlat} shows that
+the read-write register with the \ac{RR} configuration achieves a maximum
+throughput of approximately $200$ and $110$ Kops/s for reads and
+writes, respectively, being matched by the \ac{CFT} register, as
+expected. The \ac{BFT} register has significantly lower throughput,
+peaking at approximately $30$ and $2$ Kops/s for reads and
+writes.
+
+In Figure~\ref{fig:smr_tputlat} we can again observe that the \ac{CFT} and
+\ac{RR} protocols behave comparably, peaking at
+approximately $65$ and $200$ Kops/s for updates and optimized
+reads, respectively. The \ac{BFT} protocol peaks at $20$ and $160$
+Kops/s for updates and optimized reads, respectively. This is due
+to both larger quorums and the extra protocol round of PBFT.
+
+\new{In all cases, the
+throughput becomes bounded by the CPU: the ammount of request
+nodes need to process exceeds the capability of the hardware.
+In the \ac{BFT} protocols, there are both more replicas and
+more rounds, which equates to more messages to be processed and,
+by extension, lower throughput.}
+
+In the preceding experiments, the crash and
+\ac{RR} protocols used equally sized quorums, and as such
+had very similar performance. However, as
+discussed in Sections~\ref{sec:model} and~\ref{sec:protocol},
+the \ac{RR} model has asymmetric quorums, which lends
+itself to faster reads (at the expense of slower writes).
+Moreover, in the preceding experiments the number of restarts has
+been set to $0$, as this is the common case. To better explore
+the configuration space of \ac{RR} quorums and their
+performance difference to \ac{CFT}, we reran the latency experiments
+from Figures~\ref{fig:1ms_reg_lat}--\ref{fig:1ms_smr_lat}, but with
+different quorum configurations. In
+Figures~\ref{fig:1ms_reg_lat_conf}--\ref{fig:1ms_smr_lat_conf}, we can
+observe that, by leveraging the smaller quorums of \ac{RR}, read
+operations become faster than their equivalents in \ac{CFT}, at the
+expense of more expensive writes. Moreover, as the number of
+restarts increases, the difference to \ac{CFT} shrinks, and
+eventually \ac{CFT} reads outperform \ac{RR}, in
+the uncommon case where most replicas have just restarted and
+have yet to run their recovery protocol. Similarly, as the number
+of restarts increases, write/update operations also become more
+expensive (as they require read quorums in some steps).
+
+Overall, the results show that \ac{RR} has very close performance
+to \ac{CFT}, while offering rollback protection and better read performance
+in some configurations, in the common case with few restarts.
+Compared to \ac{BFT}, \ac{RR} offers significantly better performance
+due to smaller quorums than \ac{BFT} and, for read-write, the lack of
+digital signatures.
 
 \section{Discussion}\label{sec:discution}
 
