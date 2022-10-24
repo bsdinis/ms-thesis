@@ -33,15 +33,17 @@ fault tolerance to a service implemented by an individual networked
 node. To ensure that the replicated service appears to clients like
 its single-node equivalent except for higher availability, a
 replication protocol coordinates the replicated
-nodes. For instance, to replicate a simple key value store with a
-read/write interface, one can use the \ac{ABD}~\cite{abd}
+nodes. For instance, to replicate a key value store \new{(i.e.:
+a storage system which offers a simple get/put interface)} one can use the \ac{ABD}~\cite{abd}
 protocol. For more complex applications that can be modelled
 using a deterministic state machine, an \ac{SMR} protocol like
 Paxos~\cite{paxos} may be used.
 
-Adding persistency to nodes in replicated systems is a common
-practice in distributed systems, which allows replicas to recover
-from crashes from their local state, which in turn makes the
+\new{Durability, i.e.\ not losing data even in the event of faults, is a key property of storage
+systems. For replicated storage systems, adding local persistency
+to the nodes that make up the system is a common practice. This
+allows replicas to recover from crashes (in which they lose their
+volatile state)} from their local \new{persistent} state, which in turn makes the
 system resilient to catastrophic full system
 shutdowns~\cite{bolosky:paxos}. From a
 formal point of view, however, these systems are commonly treated in a
@@ -52,20 +54,37 @@ small extensions that describe when and what data nodes need to
 persist so that, in the event of a restart, the node can
 operate as if nothing happened.
 
-Although this approach is sufficient for the general use case, in
-certain security sensitive contexts it is not\bsd{Add a cue for
-performance focused systems}. In particular,
-\acp{TEE} are deployed in a highly adversarial model, where the
-control over the persistent storage is limited, especially so in
-the event of a restart. Networked services implemented inside \acp{TEE} like ARM TrustZone~\cite{armTZ}, AMD SEV-SNP~\cite{amdsev,
-  amdsev-snp}, Intel SGX~\cite{intelsgx}, or the future Intel
-TDX~\cite{inteltdx} and ARM CCA~\cite{arm-cca} can similarly benefit
-from replication.  Replicated \ac{TEE}-based systems aim to combine the
-confidentiality, integrity, and remote attestation of \acp{TEE} with
-replication to ensure high availability.  Examples include permissioned blockchains~\cite{teechain}, monotonic
-counters for ensuring state freshness~\cite{rote}, in-memory key-value
-stores~\cite{avocado-atc21}, as well as broadcast and common random
-number generator primitives~\cite{p2p-sgx}.
+\new{This lack of explicit consideration of the persistent state
+becomes a problem in certain security sensitive cases, in
+particular in the context of \acp{TEE}. \acp{TEE} are
+applications running in a special hardware-protected environment,
+where the CPU shields the application, guaranteeing the integrity
+and confidentiality of the code execution and the associated
+volatile memory, in a way that it can be remotely attested that
+the hardware protections were correctly set up. As such, they
+have become an attractive solution for system administrators who
+make deployments in infrastructure that they do not directly
+control (e.g.\ the public cloud). \acp{TEE} run in an highly
+adversarial attacker model, where the owner and operator of the
+hardware is not trusted, and as such their control over the
+persistent storage is quite limited, especially in the event of a
+restart, where the \ac{TEE} cannot maintain records that ensure
+the integrity and freshness of the persistent storage it is
+using. Simply applying current replicated protocols would pose a
+correctness and security problem.}\bsd{is this too vague? it is developed further down}
+
+Despite these challenges, networked services implemented inside \acp{TEE} like
+ARM TrustZone~\cite{armTZ}, AMD SEV-SNP~\cite{amdsev,
+amdsev-snp}, Intel SGX~\cite{intelsgx}, or the future Intel
+TDX~\cite{inteltdx} and ARM CCA~\cite{arm-cca} can similarly
+benefit from replication.  Replicated \ac{TEE}-based systems aim
+to combine the confidentiality, integrity, and remote attestation
+of \acp{TEE} with replication to ensure high availability.
+Examples include permissioned blockchains~\cite{teechain},
+monotonic counters for ensuring state freshness~\cite{rote},
+in-memory key-value stores~\cite{avocado-atc21}, as well as
+broadcast and common random number generator
+primitives~\cite{p2p-sgx}.
 
 A key design decision in all replicated systems is the choice of fault
 model underlying the replication protocol. This model captures the set
@@ -178,9 +197,9 @@ Our contributions include:
         enables higher throughput from key value stores backed by
         persistent state;
     \item An extensive experimental evaluation of our protocols
-        in the \ac{TEE} setting, with a deep comparison with
+        in the \ac{TEE} setting, with a \update{detailed} comparison with
         unsafe \ac{CFT} and expensive \ac{BFT} solutions;
-    \item An extensive experimental evaluation of the \ac{R2-S2}
+    \item An experimental evaluation of the \ac{R2-S2}
         system.
 \end{enumerate}
 
