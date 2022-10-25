@@ -97,7 +97,7 @@ Note that state continuity implies fork
 protection~\cite{fork_lcm}, i.e., guaranteeing that no duplicate
 \ac{TEE} are instantiated with access to the same stored state.  We
 discuss fork protection and how it can be achieved in replicated
-systems in Section~\ref{sec:related_work}.
+systems in Chapter~\ref{chap:related}.
 
 \paragraph{\ac{TEE} threat model and guarantees.}
 
@@ -255,7 +255,7 @@ Furthermore, we define a liveness bound $F$, i.e. the system is live
 provided that no more than $F$ replicas are temporarily unreachable at
 any given moment, due to network partitions, power outages, or reboot.
 
-\subsection{Deriving {\ac{RR} Quorums}}\label{sec:parameters}
+\subsection{Deriving {\ac{RR} Quorums}}\label{ssec:parameters}
 
 As we explained, the correctness of replication protocols hinges
 on the property of quorum intersection: any pair of operations
@@ -448,7 +448,7 @@ protocols in the \ac{RR} model, as we will see next.
         \includegraphics[width=.32\linewidth]{img/RR_quorums_I1}
         \includegraphics[width=.32\linewidth]{img/RR_quorums_I2}\\
         (a) \hspace{2.3cm} (b) \hspace{.2cm}
-    \caption{Example of a \ac{RR} quorum system ($M_R=4$,
+    \caption{Example of a \new{partially intersecting} \ac{RR} quorum system ($M_R=4$,
     $F=2$). In (a), there were $3$ restarts (shaded) and $2$ rollbacks
     (crossed). Thus, the read quorum receives suspicious replies and
     grows larger, ensuring that both read quorums still intersect $W_Q$ in
@@ -457,6 +457,90 @@ protocols in the \ac{RR} model, as we will see next.
     suspicion of rolled back state), and thus read quorums can be
     disjoint, as noted by \textbf{I2}.}\label{fig:quorums}
 \end{figure}
+
+\new{
+\paragraph{Classifying \ac{RR} Quorum Systems}
+Reviewing the quorum properties in the previous paragraph,
+there is one property that stands out: \textbf{I2}. In quorum
+literature, the intersection of quorums is key property, but
+in \ac{RR}, it naturally arises that for some
+parametrizations this is not guaranteed to happen between all
+read quorums. Handling this peculiarity will require some protocol support in
+order to avoid having situations where two non-intersecting
+read quorums hold different views of the system without
+knowledge of the progress made by the other part. However, in
+certain parametrizations, property \textbf{I2} can be guaranteed
+never to hold, and thus such extraneous protocol infrastructure
+can be avoided. We classify \ac{RR} quorum systems in two
+categories accordingly:
+
+\begin{defin} [Partially Intersecting \ac{RR} Quorum System]
+    A \ac{RR} Quorum System in which there are two read
+    quorums, $R_Q^1, R_Q^2$ such that $R_Q^1 \cap R_Q^2 =
+    \O$. In other words, where \textbf{I2} holds.
+\end{defin}
+
+\begin{defin} [Fully Intersecting \ac{RR} Quorum System]
+    A \ac{RR} Quorum System in which there for all pairs of read
+    quorums, $R_Q^1, R_Q^2$ $R_Q^1 \cap R_Q^2 \neq
+    \O$ is true. In other words, where \textbf{I2} does not
+    hold.
+\end{defin}
+
+Theorem~\ref{theorem:fully_intersecting} describes how to
+characterize a \ac{RR} quorum system as either partially or
+fully intersecting based on its parametrization:
+
+\begin{theorem} [Characterization of \ac{RR} Quorum
+    Systems]\label{theorem:fully_intersecting}
+    A \ac{RR} quorum system with parameters $M_R, F,
+    \Delta_R, \Delta_W$ and $\Delta_N$, where $\Delta_R > 0,
+    \Delta_W > 0$ and $\Delta_N \geq 0$ and in which the
+    total number of replicas is $N = M_R + F + \Delta_W +
+    \Delta_N$, the size of read quorums is $R_Q = F + \min(s,
+    M_R) + \Delta_N + \Delta_R$ (with $s$ as defined above)
+    and the size of write quorums $W_Q = M_R + \Delta_W$ is
+    fully intersecting if and only if:
+    \begin{equation}\label{eq:charaterization_theorem}
+        F + \Delta_N + 2 \Delta_R > M_R + \Delta_W
+    \end{equation}
+\end{theorem}
+\begin{dem}
+    To prove the intersection of any two read quorums, we
+    show that Equation~\ref{eq:charaterization_theorem} is equivalent to
+    $2 R_Q > N$, even when $s = 0$. This in turn is equivalent to
+    stating that the dimension of \emph{any} two read quorums from the
+    set of the smallest read quorums possible for a quorum
+    system (i.e.: those where $s = 0$) is larger than the
+    size of the quorum system. This means that at least one
+    replica is present in both read quorums, and as such
+    property \textbf{I2} cannot hold. We denote the size read quorums
+    of the set of smallest read quorums as $R_Q(s = 0)$
+    \begin{align*}
+        2 R_Q (s = 0) &> N  \\
+        \equ 2F + 2\min(0, M_R) + 2\Delta_N + 2\Delta_R &> M_R + F + \Delta_W + \Delta_N  \\
+        \equ F + \Delta_N + 2\Delta_R &> M_R + \Delta_W \\
+    \end{align*}
+    \hfill\ensuremath{\Box}\vspace{2em}
+\end{dem}
+
+\begin{corollary}
+    In the parametrization in
+    Equation~\ref{eq:deploymentfinal}, the associated quorum
+    system is fully intersecting if and only if $F \geq M_R$
+\end{corollary}
+\begin{dem}
+    The parametrization in question fixes $\Delta_R = 1,
+    \Delta_W = 1$ and $\Delta_N = 0$. Substituting in
+    Equation~\ref{eq:charaterization_theorem}, we get:
+    \begin{align*}
+        F + 2 &> M_R + 1 \\
+        \equ F + 1 &> M_R \\
+        \equ F &\geq M_R
+    \end{align*}
+    \hfill\ensuremath{\Box}\vspace{2em}
+\end{dem}
+}
 
 \paragraph{Reflections on the parametrization of the system.}
 \ac{RR} quorums are more complex than regular
@@ -479,9 +563,9 @@ state), but also because it allows us to extract the maximum
 performance from the system and avoid wasting resources used in
 replication.
 
-\bsd{TODO: classify the two types of quorum systems}.
-
 \paragraph{Comparison with existing asymmetric quorum schemes.}
+
+\bsd{TODO: Visigoth?}.
 
 Previous proposals for asymmetric quorum schemes differ
 significantly from \ac{RR} quorum systems.  The idea of
@@ -520,7 +604,7 @@ protocols to the fault model. In this section, we identify
 principles for this adaptation and apply them to existing
 protocols, showing that the adaptation is straightforward.
 
-\subsection{Principles and challenges for protocol adaptation}
+\subsection{Principles and challenges for protocol adaptation}\label{ssec:adaptation}
 
 When adapting existing protocols to the \ac{RR} model, it is
 convenient to start from a crash fault tolerant protocol.
@@ -853,7 +937,7 @@ accepts.
 \subsection{Security Properties}\label{ssec:sec_prop}
 \bsd{Consider moving to chapter 4}
 If the threat model for \acp{TEE} explained in
-Section~\ref{sec:fault_model} holds, the protocols described in this
+Section~\ref{ssec:tee_motivation} holds, the protocols described in this
 section achieve freshness, integrity and confidentiality.
 Confidentiality of the overall system is inherited trivially from the
 \ac{TEE} fault model. Integrity and freshness of data follow from the
