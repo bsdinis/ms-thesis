@@ -36,7 +36,7 @@ replication protocol coordinates the replicated
 nodes. For instance, to replicate a key value store \new{(i.e.:
 a storage system which offers a simple get/put interface)} one can use the \ac{ABD}~\cite{abd}
 protocol. For more complex applications that can be modelled
-using a deterministic state machine, an \ac{SMR} protocol like
+using a deterministic state machine, a \ac{SMR} protocol like
 Paxos~\cite{paxos} may be used.
 
 \new{Durability, i.e.\ not losing data even in the event of faults, is a key property of storage
@@ -45,33 +45,38 @@ to the nodes that make up the system is a common practice. This
 allows replicas to recover from crashes (in which they lose their
 volatile state)} from their local \new{persistent} state, which in turn makes the
 system resilient to catastrophic full system
-shutdowns~\cite{bolosky:paxos}. From a
-formal point of view, however, these systems are commonly treated in a
+shutdowns, a property considered as being of paramount importance
+in real-world deployment of replicated systems~\cite{bolosky:paxos}. From a
+formal point of view, however, replicated systems that persist
+the state of each replica durably are commonly treated in a
 very similar fashion to others that store their state solely in
-volatile memory. Indeed, when the persistent aspect of nodes
-is explicitely considered, protocols are almost identical, with
-small extensions that describe when and what data nodes need to
-persist so that, in the event of a restart, the node can
-operate as if nothing happened.
+volatile memory --- the persistent aspect is considered trivial.
+Indeed, when the persistent aspect of nodes is explicitely
+highlighted, protocols only add small extensions that describe
+when and what data nodes need to persist so that, in the event of
+a restart, the node can operate as if nothing happened.
 
-\new{This lack of explicit consideration of the persistent state
-becomes a problem in certain security sensitive cases, in
+\new{This assumption that persisting the local state of
+replicated nodes is trivial does not hold in certain security sensitive cases, in
 particular in the context of \acp{TEE}. \acp{TEE} are
 applications running in a special hardware-protected environment,
 where the CPU shields the application, guaranteeing the integrity
 and confidentiality of the code execution and the associated
 volatile memory, in a way that it can be remotely attested that
-the hardware protections were correctly set up. As such, they
+the hardware protections were correctly set up. Consequently, they
 have become an attractive solution for system administrators who
 make deployments in infrastructure that they do not directly
 control (e.g.\ the public cloud). \acp{TEE} run in an highly
 adversarial attacker model, where the owner and operator of the
-hardware is not trusted, and as such their control over the
-persistent storage is quite limited, especially in the event of a
-restart, where the \ac{TEE} cannot maintain records that ensure
-the integrity and freshness of the persistent storage it is
-using. Simply applying current replicated protocols would pose a
-correctness and security problem.}\bsd{is this too vague? it is developed further down}
+hardware is not trusted. As such, although nodes can keep
+integrity checksums in memory and encrypt their persistent state,
+to ensure that it cannot be arbitrarily tampered with, their
+control over the persistent storage is quite limited.
+Particularly, when a restart happens and the volatile checksums
+are lost, the \ac{TEE} may suffer a \emph{rollback attack}, where
+the attacker replaces the persistent state with a stale but
+correct version of the state. Simply applying current replicated
+protocols would pose a correctness and security problem.}
 
 Despite these challenges, networked services implemented inside \acp{TEE} like
 ARM TrustZone~\cite{armTZ}, AMD SEV-SNP~\cite{amdsev,
@@ -143,7 +148,7 @@ path to ensure the correctness of the system. By batching
 multiple requests together, it is possible to reduce this
 overhead, increasing throughput at the expense of the additional
 latency required to form the batch. Leveraging the \ac{RR} model,
-it is possible to form batches more aggressively, replying to
+it is possible to form larger batches, replying to
 certain requests before synchronizing to persistent storage. This
 would otherwise be unsafe, as a crash before the synchronization
 would constitute an effective rollback, which the \ac{RR} model
@@ -199,7 +204,7 @@ Our contributions include:
     \item An extensive experimental evaluation of our protocols
         in the \ac{TEE} setting, with a \update{detailed} comparison with
         unsafe \ac{CFT} and expensive \ac{BFT} solutions;
-    \item An experimental evaluation of the \ac{R2-S2}
+    \item An preliminary experimental evaluation of the \ac{R2-S2}
         system.
 \end{enumerate}
 

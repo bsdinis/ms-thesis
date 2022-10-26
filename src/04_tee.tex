@@ -307,21 +307,21 @@ $95^{\text{th}}$ percentiles.
 \bsd{TODO, revert back to linewidth}
 \begin{figure*}[t]
     \centering
-    \begin{subfigure}[t]{0.24 * 10cm}
+    \begin{minipage}[t]{0.45\linewidth}
         \centering
         \includegraphics[width=\linewidth]{teem_results/deployment/result/client_cloud_s3}
         \caption{Client in the Cloud w/ S3}\label{fig:cloud_client_s3}
-    \end{subfigure}
-    \begin{subfigure}[t]{0.24 * 10cm}
+    \end{minipage}
+    \begin{minipage}[t]{0.45\linewidth}
         \centering
         \includegraphics[width=\linewidth]{teem_results/deployment/result/client_cloud_redis}
         \caption{Client in the Cloud w/ Redis}\label{fig:cloud_client_remote_redis}
-    \end{subfigure}
-    \begin{subfigure}[t]{0.24 * 10cm}
+    \end{minipage}
+    \begin{minipage}[t]{0.50\linewidth}
         \centering
         \includegraphics[width=\linewidth]{teem_results/deployment/result/collocation_center}
         \caption{Colocation Center w/ Redis}\label{fig:coloc_redis}
-    \end{subfigure}
+    \end{minipage}
     \caption{Latency in different deployment scenarios. The
     ``s3'' and ``redis'' bars refer to direct accesses to the
     untrusted storage, providing a performance baseline without
@@ -393,16 +393,16 @@ read quorums and effective usage of the cache.
 \bsd{TODO: revert back to linewidth}
 \begin{figure}[t]
     \centering
-    \begin{subfigure}[t]{0.49 * 10cm}
+    \begin{minipage}[t]{0.49\linewidth}
         \centering
         \includegraphics[width=\linewidth]{teem_results/deployment/result/ycsb_redis}
         \caption{Redis baseline}\label{fig:ycsb_redis}
-    \end{subfigure}
-    \begin{subfigure}[t]{0.49 * 10cm}
+    \end{minipage}
+    \begin{minipage}[t]{0.49\linewidth}
         \centering
         \includegraphics[width=\linewidth]{teem_results/deployment/result/ycsb_teems}
         \caption{\ac{TEEMS} + Redis}\label{fig:ycsb_teems}
-    \end{subfigure}
+    \end{minipage}
     \caption{Latency with \ac{YCSB} workloads}
 \end{figure}
 

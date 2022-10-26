@@ -357,7 +357,7 @@ combining~\ref{eq:fresh} and~\ref{eq:Wavail}, we obtain:
 Then, by replacing $W_Q$ (\ref{eq:fresh}) and $N$
 (\ref{eq:ReplSize}) in Equation~\ref{eq:inters}, we obtain the
 following equation for read quorums.
-\begin{align} \label{eq:rq_size}
+\begin{align}\label{eq:ReadSize}
   R_Q = F + \min(s, M_R) + \Delta_N + \Delta_R && \Delta_R > 0, \Delta_N \geq 0
 \end{align}
 
@@ -365,23 +365,23 @@ following equation for read quorums.
 We conduct the analysis of the liveness conditions for read
 quorums separately, since these are dynamic conditions, namely
 due to their dependency on the current number of possibly stale
-nodes, $s$.  As such, we introduce another dynamic value: $f'$,
+nodes, $s$.  As such, we introduce another dynamic value: $f^{\prime}$,
 the number of replicas that are unreachable at any given point.
 This allows us to express the dynamic liveness condition for
 reads as follows:
-\begin{equation} \label{eq:DynRavail}
-    N - f' \geq R_Q  \Leftrightarrow f' + \min(s, M_R) \leq M_R + \Delta_W - \Delta_R
+\begin{equation}\label{eq:DynRavail}
+    N - f^{\prime} \geq R_Q  \Leftrightarrow f' + \min(s, M_R) \leq M_R + \Delta_W - \Delta_R
 \end{equation}
 
 This equation allows us to reason about the liveness for reads,
 depending on specific runtime conditions and on how the static
 parameters are chosen. For instance, we could require reads to be
-live in the worst possible case of $f' = F$ and $s = M_R$, yielding
+live in the worst possible case of $f^{\prime} = F$ and $s = M_R$, yielding
 $\Delta_W \geq \Delta_R + F$.
 
 However, this is a conservative assumption. An example of a more
 realistic one would be to assume that we forfeit read liveness in
-the event of a worst case level of unreachability ($f' = F$) and
+the event of a worst case level of unreachability ($f^{\prime} = F$) and
 there is at least one rollback ($M_R \geq 1$). This yields
 $\Delta_W \geq \Delta_R + F - r$. We also choose to set
 $\Delta_N=0,\Delta_R=1$ to minimize replication costs, allowing
@@ -465,14 +465,17 @@ there is one property that stands out: \textbf{I2}. In quorum
 literature, the intersection of quorums is key property, but
 in \ac{RR}, it naturally arises that for some
 parametrizations this is not guaranteed to happen between all
-read quorums. Handling this peculiarity will require some protocol support in
-order to avoid having situations where two non-intersecting
-read quorums hold different views of the system without
-knowledge of the progress made by the other part. However, in
-certain parametrizations, property \textbf{I2} can be guaranteed
-never to hold, and thus such extraneous protocol infrastructure
-can be avoided. We classify \ac{RR} quorum systems in two
-categories accordingly:
+read quorums. Here, two disjoint read quorums may in general
+reflect different system states~---~a phenomenon usually
+described as {\em split brain}.  This can happen when an
+operation that changes the system state is still in progress (or
+even halted, due to the crash of the initiator). Handling this
+peculiarity will require some protocol support, creating
+mechanisms to ensure that a single value is reported by all read
+quorums. However, in certain parametrizations, property
+\textbf{I2} can be guaranteed never to hold, and thus such
+extraneous protocol infrastructure can be avoided. We classify
+\ac{RR} quorum systems in two categories accordingly:
 
 \begin{defin} [Partially Intersecting \ac{RR} Quorum System]
     A \ac{RR} Quorum System in which there are two read
@@ -647,33 +650,34 @@ satisfying requests. Doing so might allow for clearing the
 suspicion flag in case of an update where the new state does not
 depend on the previous version.
 
-Finally, if the adapted replication protocol is to be configured such
-that $F<M_R$, read quorums may not intersect (see quorum property
-\textbf{I2} in Section~\ref{ssec:parameters}).  Here, two disjoint
-read quorums may ion general reflect different system states~---~a
-phenomenon usually described as {\em split brain}.  This can happen
-when an operation that changes the system state is still in progress
-(or even halted, due to the crash of the initiator). When adapting
-protocols, designers must take this into account and implement
-mechanisms to ensure that a single value is reported by all read
-quorums, if required.
+\new{
+If the quorum system is \emph{fully intersecting}, these changes
+are enough. Otherwise, mechanisms that ensure the correctness of
+reads from possibly disjoint read quorums need to be put in
+place. These mechanisms will be generally protocol specific.
+
+\bsd{point forward about preemptive and cautious approaches?}
+}
 
 Next, we will present two example protocols that follow these
 principles and illustrate some of the above challenges.
 
 \subsection{Read-write register}\label{ssec:abd}
 
-In this section, we present an adapted version of the ABD~\cite{abd}
-protocol for a distributed read/write register with linearizable
-semantics\footnote{A concurrent object is
+In this section, we present an adapted version of the
+ABD~\cite{abd} protocol for a distributed read/write register
+with linearizable semantics\footnote{A concurrent object is
 linearizable iff there exists a serialization of all operations
 which is equivalent to a sequential execution and the
-serialization matches the real-time order of invocation/reply.}~\cite{linearizability} under the \ac{RR} model. ABD provides a simple
-read/write interface, which is useful for storage systems or services
-that offer a read/write interface. Read/write register protocols have
-the advantage of guaranteeing termination even in asynchronous systems
-with faults, and having good performance due to a simple message
-pattern that is linear in the number of replicas~\cite{gryff:nsdi20}.
+serialization matches the real-time order of
+invocation/reply.}~\cite{linearizability} under the \ac{RR}
+model. ABD provides a simple read/write interface, which is
+useful for storage systems or services that offer a read/write
+interface. Read/write register protocols have the advantage of
+guaranteeing termination even in asynchronous systems with
+faults, and having good performance due to a simple message
+pattern that is linear in the number of
+replicas~\cite{gryff:nsdi20}.
 %
 Figure~\ref{fig:abd-read} shows the pseudocode for the read operation
 while the write logic is shown in Figure~\ref{fig:abd-write}. Since
@@ -701,7 +705,9 @@ that sequence number is incremented by the client, appended with the
 client id, and the resulting timestamp is sent with the value to be
 written. Upon receiving this second round message, replicas overwrite
 values if the received timestamp is greater than the one associated
-with the data they store.
+with the data they store. \new{This clears any suspicion that
+existed of the value of the register, as the written value is
+guaranteed to be fresh.}
 
 
 \paragraph{Read.} Following the ABD protocol, reads occur in one
@@ -716,7 +722,8 @@ timestamp and data to a majority. (This is needed to conclude a write
 operation that executes concurrently or was left unfinished.)
 
 Translating the notion of a majority to read and write quorums in the
-\ac{RR} model presents a subtle challenge. Even though
+\ac{RR} model presents a subtle challenge \new{in the context of
+partially intersecting quorum systems}. Even though
 intuitively the initial read round only requires a read quorum (and in
 fact this is sufficient to determine the read reply), the optimization
 of skipping the second round is only applicable if there is unanimity
@@ -728,7 +735,8 @@ quorum they contact, thus breaking linearizability. The problem with
 waiting for a larger quorum, however, is that in scenarios
 where inter-node latency has a wide variance such as geo-replication,
 this introduces an additional latency that erodes the performance
-advantage of the smaller quorums.% in the \ac{RR} model.
+advantage of the smaller quorums.
+
 %We address this through a stabilization phase described next, which is useful beyond the use of this fault model, namely to asymmetric non-intersecting quorums in crash fault tolerant protocols.
 
 %% Although having an ultimately protocol-dependant solutions, the
@@ -769,6 +777,10 @@ approach, the stabilization would occur right after the value has been
 written. We follow a lazier option, triggering the stabilization only
 after the first read (thus avoiding stabilizing a value which is never
 read).
+
+\new{This mechanism can be altogether skipped if the quorum
+system is fully intersecting, as the intersection of read quorums
+guarantees that the value present in any read quorum is correct.}
 
 \paragraph{Proof sketch.}
 We prove the correctness of the resulting protocol in the
@@ -817,20 +829,19 @@ the normal case operation for conciseness.
 \end{figure}
 \paragraph{Normal case operation.}
 We follow the multi-Paxos protocol~\cite{paxos_simple,paxos_engineering},
-where there is
-a component of the protocol that elects a stable leader replica, guaranteeing
-that only that replica can propose the sequencing of new operations while
-it remains the leader. That sequencing corresponds to the normal case
-operation, which is described in the pseudocode in
-Figure~\ref{fig:smr-update}, and is depicted in
-Figure~\ref{fig:paxos} (following the protocol
-description from~\cite{paxos_builders}). In summary, the leader replica
-proposes a sequence number for incoming client requests, and this sequencing
-must be accepted by a quorum of replicas (a majority in Paxos), who validate
-that this sequence number had not been assigned yet. Once
-such a majority is gathered, replicas execute the client operation in that
-order and the leader replicas replies with the output of the operation
-to the client.
+where there is a component of the protocol that elects a stable
+leader replica, guaranteeing that only that replica can propose
+the sequencing of new operations while it remains the leader.
+That sequencing corresponds to the normal case operation, which
+is described in the pseudocode in Figure~\ref{fig:smr-update},
+and is depicted in Figure~\ref{fig:paxos} (following the protocol
+description from~\cite{paxos_builders}). In summary, the leader
+replica proposes a sequence number for incoming client requests,
+and this sequencing must be accepted by a quorum of replicas (a
+majority in Paxos), who validate that this sequence number had
+not been assigned yet. Once such a majority is gathered, replicas
+execute the client operation in that order and the leader
+replicas replies with the output of the operation to the client.
 
 \if 0
 \begin{enumerate}
@@ -879,19 +890,20 @@ replicas. If the replies are unanimous, the client can return the
 value.
 
 Applying this optimization requires careful reasoning to avoid
-violating the linearizable semantics of the protocol. To
-understand why, consider the possibility of two successive read
-operations, $r_1, r_2$, where $r_1$ ends before $r_2$ begins, and
-that use quorums $Q_{R1}$ and $Q_{R2}$ (respectively) and execute
-concurrently with a write $w$ that gathers a quorum of accepts
-$Q_W$. In this case, and given property \textbf{I2} (read quorums
-may not intersect), $r_1$ may see $w$ as being complete in a read
-quorum, but $r_2$ only contains replicas that have not yet
-gathered a write quorum of accepts for $w$, since those replicas
-might have sent but not yet received the necessary number of
-accepts. This would violate linearizability since $r_1$ precedes
-$r_2$ in real time but, given their outputs, they cannot be
-linearized in that order.
+violating the linearizable semantics of the protocol\new{,
+particularly in the context of partially intersecting quorum
+systems}. To understand why, consider the possibility of two
+successive read operations, $r_1, r_2$, where $r_1$ ends before
+$r_2$ begins, and that use quorums $Q_{R1}$ and $Q_{R2}$
+(respectively) and execute concurrently with a write $w$ that
+gathers a quorum of accepts $Q_W$. In this case, and given
+property \textbf{I2} (read quorums may not intersect), $r_1$ may
+see $w$ as being complete in a read quorum, but $r_2$ only
+contains replicas that have not yet gathered a write quorum of
+accepts for $w$, since those replicas might have sent but not yet
+received the necessary number of accepts. This would violate
+linearizability since $r_1$ precedes $r_2$ in real time but,
+given their outputs, they cannot be linearized in that order.
 
 This is yet another occurrence of a split brain scenario, but
 the solution in this situation is different: instead of
@@ -903,7 +915,9 @@ it has sent an $\textsc{accept}$ message for a slot
 higher than the last executed operation (as it indicates the
 possibility of another read quorum with a different value). If no
 replicas in a read quorum have done this, then no other operation
-has concluded (\textbf{I1}).
+has concluded (\textbf{I1}). \new{As was the case in the register
+protocol adaptation, this mechanism can be skipped in the case of
+fully intersecting quorum systems.}
 
 \paragraph{Proof sketch.}
 Just as in the \ac{ABD} protocol, we sketch the proof based on
@@ -1005,24 +1019,24 @@ platforms to interact with a \ac{TEE} replicated system).
 \bsd{TODO, revert back to linewidth}
 \begin{figure*}[th!]
     \centering
-    \begin{subfigure}[t]{0.24 * 10cm}
+    \begin{minipage}[t]{0.24\linewidth}
         \includegraphics[width=\linewidth]{teem_results/protocol/1ms/lat/1ms_reg}
         \caption{Read-write register ($1ms$)}\label{fig:1ms_reg_lat}
-    \end{subfigure}
-    \begin{subfigure}[t]{0.24 * 10cm}
+    \end{minipage}
+    \begin{minipage}[t]{0.24\linewidth}
         \includegraphics[width=\linewidth]{teem_results/protocol/1ms/lat/1ms_smr}
         \caption{State machine ($1ms$)}\label{fig:1ms_smr_lat}
-    \end{subfigure}
+    \end{minipage}
     %\vskip 0.1cm
-    \begin{subfigure}[t]{0.24 * 10cm}
+    \begin{minipage}[t]{0.24\linewidth}
         \includegraphics[width=\linewidth]{teem_results/protocol/aws/aws_reg}
         \caption{Read-write register (AWS)}\label{fig:aws_reg_lat}
-    \end{subfigure}
-    \begin{subfigure}[t]{0.24 * 10cm}
+    \end{minipage}
+    \begin{minipage}[t]{0.24\linewidth}
         \centering
         \includegraphics[width=\linewidth]{teem_results/protocol/aws/aws_smr}
         \caption{State machine (AWS)}\label{fig:aws_smr_lat}
-    \end{subfigure}
+    \end{minipage}
     \caption{Operation latency for different protocols in
     different network topologies}
 \end{figure*}\label{fig:protocol_lat}
@@ -1030,14 +1044,14 @@ platforms to interact with a \ac{TEE} replicated system).
 \bsd{TODO, revert back to linewidth}
 \begin{figure*}[th!]
     \centering
-    \begin{subfigure}[t]{0.45 * 10cm}
+    \begin{minipage}[t]{0.45\linewidth}
         \includegraphics[width=\linewidth]{teem_results/protocol/1ms/reg-tput/result/reg}
         \caption{Read-write register}\label{fig:reg_tputlat}
-    \end{subfigure}
-    \begin{subfigure}[t]{0.45 * 10cm}
+    \end{minipage}
+    \begin{minipage}[t]{0.45\linewidth}
         \includegraphics[width=\linewidth]{teem_results/protocol/1ms/smr-tput/result/smr}
         \caption{Replicated state machine}\label{fig:smr_tputlat}
-    \end{subfigure}
+    \end{minipage}
     \caption{Throughput-Latency curve for different protocols}
 \end{figure*}
 
@@ -1084,14 +1098,14 @@ prototype, we modified $24$ LoC and added $28$.
 \bsd{TODO, revert back to linewidth}
 \begin{figure}[t]
     \centering
-    \begin{subfigure}[t]{.49 * 10cm}
+    \begin{minipage}[t]{.49\linewidth}
         \includegraphics[width=\linewidth]{teem_results/protocol/1ms/parameter/reg_parameter}
         \caption{Read-write register}\label{fig:1ms_reg_lat_conf}
-    \end{subfigure}
-    \begin{subfigure}[t]{.49 * 10cm}
+    \end{minipage}
+    \begin{minipage}[t]{.49\linewidth}
         \includegraphics[width=\linewidth]{teem_results/protocol/1ms/parameter/smr_parameter}
         \caption{State machine}\label{fig:1ms_smr_lat_conf}
-    \end{subfigure}
+    \end{minipage}
     \caption{Latency for
     different configurations and models in the $1$ms topology. \ac{CFT} uses
     $F=3$ and $RR(M_R, F, s)$ denote \ac{RR} with parameters $M_R$ and
@@ -1204,9 +1218,36 @@ Compared to \ac{BFT}, \ac{RR} offers significantly better performance
 due to smaller quorums than \ac{BFT} and, for read-write, the lack of
 digital signatures.
 
-\section{Discussion}\label{sec:discution}
+\new{
+\section{Discussion: Generalization of the \ac{RR} model}\label{sec:discussion}
 
-\bsd{\begin{itemize}
-    \item How this can apply to CFT protocols (when $M_R == 0$)
-    \item Further generalization
-\end{itemize}}
+A key insight of the \ac{RR} fault model is that it is possible
+to detect, with false positives, when non-crash faulty behaviour
+has ocurred in the system. With this suspicion, plus a deployment
+specific hard limit on the number of nodes that can actually
+exhibit this faulty behaviour at the same time, we have derived
+the \ac{RR} quorum systems and associated protocols, thus
+generalizing the crash fault model. It is interesting to consider
+whether it can itself be further generalized.
+
+From a technical point of view, this is definitely possible.
+Provided that there exists a \emph{suspicion function} that
+detects, with false positives, when non-crash faulty behaviour
+has ocurred while reading the system, one could reuse the derivation
+of quorum systems presented in this chapter and the associated
+protocols. This would even generalize to the Byzantine model, as a
+trivial function which always suspects that a fault
+might have happened would correctly capture Byzantine behaviour.
+Curiously, the quorum system derived using this function is the
+one described by UpRight~\cite{upright}. Another trivial function
+would never suspect non-crash behaviour, being valid in the crash
+fault model.
+
+However, outside these trivial suspicion functions and the
+suspicion function that simply reports the suspicion flag from
+\ac{RR} nodes, we have not been able to craft functions that
+present some usefulness. Although this does not mean, by any
+means, that they do not exist, our experience points to the
+suspicion function being a bad abstraction for capturing
+intermediate fault models between the crash and Byzantine.
+}
