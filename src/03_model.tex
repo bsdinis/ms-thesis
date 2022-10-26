@@ -137,10 +137,37 @@ In the next section, we describe a novel fault model that
 captures {\em precisely}\ the set of behaviors exhibited by \acp{TEE} with
 external state: crash failures plus state rollback after a restart.
 
-\subsection{Extending the fault model}\label{sec:extending_fault_model}
+\new{
+\subsection{Extending the usefulness of fault model}\label{sec:extending_fault_model}
 
-\bsd{ TODO: give a hint as to how this can be used to extract
-better performance }
+Although the \ac{TEE} use-case requires something like the
+\ac{RR} model out of \emph{necessity}, we also look at \ac{RR} as
+an \emph{oportunity}. The ability to tolerate some rollbacks on
+restart is useful outside the security sensitive context of
+\acp{TEE}. Consider a replicated key value store, where each node
+maintains a local key value store. When writing to the local key
+value store, there are three possible approaches:
+\begin{enumerate}
+    \item[A.] The node synchronizes the written object
+        immediately, and then replies. This impacts
+        \emph{throughput};
+    \item[B.] The node places the object in a batch, and waits
+        for the batch to be flushed before replying. This impacts
+        \emph{latency};
+    \item[C.] The node places the object in a batch, and
+        immediately issues the reply. This offers the best
+        throughput and latency, but can lead to \emph{data loss}
+        if the replica crashes (i.e.: if it suffers a rollback);
+\end{enumerate}
+
+\ac{RR} opens the possibility of a hybrid approach, where some
+nodes place the object in the batch and reply eagerly (approach
+C), while others bypass the batch and synchronize directly to
+disk (approach A). With careful orchestration, this can in principle allow for
+a throughput advantage compared to approach A, a latency
+advantage compared to approach B and a durability advantage
+compared to approach C, a very interesting tradeoff.
+}
 
 \section{\ac{RR} model definition}\label{sec:model}
 
