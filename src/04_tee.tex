@@ -1,24 +1,30 @@
 \fancychapter{\ac{TEE} replication using the \ac{RR} model}\label{chap:tee}
 \cleardoublepage{}
 
-\bsd{Intro of the chapter:
-\begin{itemize}
-    \item Experimental evaluation of protocols in multiple fault
-        models using \acp{TEE}
-    \item How to use the RR fault model to build a secure cloud
-        storage layer
-    \item Evaluation of \ac{TEE}Ms
-\end{itemize}
+\new{
+As we have discussed previously, \acp{TEE} are an interesting
+option deploying replicated systems in an untrusted public cloud.
+In this chapter, we present the \acf{TEEMS}, a replicated metadata
+service for trusted cloud storage. \ac{TEEMS} a double purpose in
+the context of this dissertation: it showcases a practical system
+using the \ac{RR} fault model and associated register and
+\ac{SMR} protocols and provides the means of enhancing existing
+cloud storage systems such that they can be trusted and remotely
+attested in the same fault model as \acp{TEE} (and, by extension,
+used by them as a persistent storage, with rollback protection).
+
+This chapter is organized as follows.
+Section~\ref{sec:teems_design}
+provides the motivation and design of \ac{TEEMS}, followed by
+Section~\ref{sec:teems_impl}, which describes the implementation
+of \ac{TEEMS}. Finally, Section~\ref{sec:teems_eval} presents an
+extensive evaluation of \ac{TEEMS} using real-world workloads
+across different deployments.
 }
 
+\section{\ac{TEEMS}: Metadata service for trusted cloud
+storage}\label{sec:teems_design}
 
-\section{Metadata service for trusted cloud storage}\label{sec:metadata}
-
-As an example application built using the protocols from
-Section~\ref{sec:protocol}, we
-designed and implemented a trusted metadata service for securing
-cloud storage, which is an important research problem by itself.
-%This section motivates and presents the design of this service.
 
 \subsection{Motivation}
 
@@ -69,6 +75,20 @@ trusted storage services that extend the strong guarantees of today's
 %policies or even custom policies are all possible to implement in
 %\ac{TEEMS}. For simplicity, our prototype uses UNIX-style access control.
 
+
+\subsection{\ac{TEE}-grade cloud storage with \ac{TEEMS}}
+
+%\pd{Put more emphasis on concurrent sharing? Here it is all about freshness again.}
+Clients can use \ac{TEEMS} to lend untrusted cloud storage \ac{TEE}-level
+guarantees, by using the API in Table~\ref{tab:teems}.
+\ac{TEEMS} maintains metadata for each data blob, i.e. a short summary of
+the most recent version of a data blob, namely its hash and encryption
+key. The encrypted data blob is then stored in an ordinary cloud
+storage service. This extends the integrity, confidentiality,
+freshness and selective concurrent sharing properties of the
+metadata service to the cloud storage, while relying on the cloud
+service only for storage and availability.
+
 \begin{table}[!t]
     \centering
     \renewcommand{\arraystretch}{0.9} % this reduces the vertical spacing between rows
@@ -88,20 +108,6 @@ trusted storage services that extend the strong guarantees of today's
     \end{small}
     \caption{\ac{TEEMS} Interface}\label{tab:teems}
 \end{table}
-
-
-\subsection{\ac{TEE}-grade cloud storage with \ac{TEEMS}}
-
-%\pd{Put more emphasis on concurrent sharing? Here it is all about freshness again.}
-Clients can use \ac{TEEMS} to lend untrusted cloud storage \ac{TEE}-level
-guarantees, by using the API in Table~\ref{tab:teems}.
-\ac{TEEMS} maintains metadata for each data blob, i.e. a short summary of
-the most recent version of a data blob, namely its hash and encryption
-key. The encrypted data blob is then stored in an ordinary cloud
-storage service. This extends the integrity, confidentiality,
-freshness and selective concurrent sharing properties of the
-metadata service to the cloud storage, while relying on the cloud
-service only for storage and availability.
 
 Concurrent sharing of mutable data fundamentally requires a
 read-modify-write operation (i.e.\ some form of SMR). However, state machine operations are significantly
@@ -183,6 +189,9 @@ policy and incrementing the epoch number, if such permission is
 granted. The epoch number increment is then immediately
 visible to register operations.
 
+%\input{protocols/teems-slow.tex}
+\input{protocols/teems-fast.tex}
+
 For reads and writes, a slow but trivially correct combination of
 the protocols would be to issue a read operation on the state
 machine to obtain the policy and then issue the register
@@ -200,8 +209,6 @@ object.
 %by requiring that a policy can only be replaced after a certain number
 %of register operations succeeded.
 
-%\input{protocols/teems-slow.tex}
-\input{protocols/teems-fast.tex}
 
 %A key insight for performance, which enables fast reads and
 %writes in the absence of concurrent policy changes,
@@ -259,9 +266,7 @@ small set of fragments can be efficiently retrieved from the nearest
 providers.
 
 
-\section{Implementation}\label{sec:impl}
-
-\bsd{Massively expand}
+\section{Implementation}\label{sec:teems_impl}
 
 We implemented the \ac{TEEMS} prototype in Intel SGX (version 1),
 using C++. The \ac{TEEMS} servers are implemented using a
@@ -270,7 +275,7 @@ the client library, which interacts with the replicas and with
 the untrusted storage, takes up to 5KLoC (\ac{TEEMS}).
 
 
-\section{Evaluation}\label{sec:eval}
+\section{Evaluation}\label{sec:teems_eval}
 
 
 We evaluate our various implementations based on the \ac{RR}
@@ -304,7 +309,6 @@ In our result graphs, each data point represents the median
 measurement over $3,000$ requests and the error bars show the $5^{\text{th}}$ and
 $95^{\text{th}}$ percentiles.
 
-\bsd{TODO, revert back to linewidth}
 \begin{figure*}[t]
     \centering
     \begin{minipage}[t]{0.45\linewidth}
@@ -390,7 +394,6 @@ the Redis access must be preceded by the \ac{TEEMS} metadata access. In
 contrast, reads perform comparably to the baseline, due to local
 read quorums and effective usage of the cache.
 
-\bsd{TODO: revert back to linewidth}
 \begin{figure}[t]
     \centering
     \begin{minipage}[t]{0.49\linewidth}

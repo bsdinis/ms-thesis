@@ -139,18 +139,10 @@ external state: crash failures plus state rollback after a restart.
 
 \subsection{Extending the fault model}\label{sec:extending_fault_model}
 
-\bsd{ TODO }
+\bsd{ TODO: give a hint as to how this can be used to extract
+better performance }
 
 \section{\ac{RR} model definition}\label{sec:model}
-
-\bsd{ TODO
-    \begin{itemize}
-        \item Remove TEE references.
-        \item Add formalization of paired io event automata (if time allows)
-        \item Classify RR quorums as either full intersecting and
-            partially intersecting
-    \end{itemize}
-}
 
 Nodes in the \ac{RR} model are \new{network-connected processes} with external
 persistent state. Nodes can crash at any point in their execution
@@ -1016,7 +1008,6 @@ platforms to interact with a \ac{TEE} replicated system).
 
 \subsection{Evaluation}\label{sec:eval}
 
-\bsd{TODO, revert back to linewidth}
 \begin{figure*}[th!]
     \centering
     \begin{minipage}[t]{0.24\linewidth}
@@ -1041,7 +1032,6 @@ platforms to interact with a \ac{TEE} replicated system).
     different network topologies}
 \end{figure*}\label{fig:protocol_lat}
 
-\bsd{TODO, revert back to linewidth}
 \begin{figure*}[th!]
     \centering
     \begin{minipage}[t]{0.45\linewidth}
@@ -1095,7 +1085,6 @@ prevent split brain. For the read/write register prototype, we
 modified $72$ LoC and added $211$ new ones. For the SMR
 prototype, we modified $24$ LoC and added $28$.
 
-\bsd{TODO, revert back to linewidth}
 \begin{figure}[t]
     \centering
     \begin{minipage}[t]{.49\linewidth}
