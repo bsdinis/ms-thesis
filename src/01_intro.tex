@@ -35,7 +35,7 @@ fault tolerance to a service implemented by an individual networked
 node. To ensure that the replicated service appears to clients like
 its single-node equivalent except for higher availability, a
 replication protocol coordinates the replicated
-nodes. For instance, to replicate a key value store \new{(i.e.:
+nodes. For instance, to replicate a \ac{KVS} \new{(i.e.:
 a storage system which offers a simple get/put interface)} one can use the \ac{ABD}~\cite{abd}
 protocol. For more complex applications that can be modelled
 using a deterministic state machine, a \ac{SMR} protocol like
@@ -89,7 +89,7 @@ to combine the confidentiality, integrity, and remote attestation
 of \acp{TEE} with replication to ensure high availability.
 Examples include permissioned blockchains~\cite{teechain},
 monotonic counters for ensuring state freshness~\cite{rote},
-in-memory key-value stores~\cite{avocado-atc21}, as well as
+in-memory \acp{KVS}~\cite{avocado-atc21}, as well as
 broadcast and common random number generator
 primitives~\cite{p2p-sgx}.
 
@@ -169,7 +169,7 @@ of data. \ac{TEEMS} is used with one or more untrusted cloud storage
 services. \ac{TEEMS} maintains metadata for each data item (including the
 encryption key, authentication code, latest version number and
 policy), while ensuring strong security and enabling concurrent
-sharing of data. \ac{R2-S2} is a replicated key value store built
+sharing of data. \ac{R2-S2} is a replicated \ac{KVS} built
 using regular nodes (i.e. without TEEs or other security
 mechanisms) that leverages the \ac{RR} model with the objective
 of extracting higher throughput while retaining the strong reliability expected of a persistent
@@ -200,8 +200,8 @@ Our contributions include:
         untrusted cloud storage services to give clients the ability to share
         and concurrently access persistent data with strong confidentiality,
         integrity, and freshness;
-    \item The \ac{R2-S2} distributed key value store, which
-        enables higher throughput from key value stores backed by
+    \item The \ac{R2-S2} distributed \ac{KVS}, which
+        enables higher throughput from \acp{KVS} backed by
         persistent state;
     \item An extensive experimental evaluation of our protocols
         in the \ac{TEE} setting, with a \update{detailed} comparison with

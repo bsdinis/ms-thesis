@@ -88,7 +88,7 @@ orderly shutdowns, during which a \ac{TEE} can update the counter and store
 its external state with the latest counter value
 embedded~\cite{ariadne}.  However, trusted counters are inadequate for
 \acp{TEE} that frequently update their external state (e.g., a database or
-key-value store) and can crash at any time; ensuring state continuity
+\ac{KVS}) and can crash at any time; ensuring state continuity
 for such \acp{TEE} requires rapid counter updates.  Moreover, trusted
 counters are tied to a particular CPU/motherboard and do not support
 safe migration of \ac{TEE} computations.
@@ -144,8 +144,8 @@ Although the \ac{TEE} use-case requires something like the
 \ac{RR} model out of \emph{necessity}, we also look at \ac{RR} as
 an \emph{oportunity}. The ability to tolerate some rollbacks on
 restart is useful outside the security sensitive context of
-\acp{TEE}. Consider a replicated key value store, where each node
-maintains a local key value store. When writing to the local key
+\acp{TEE}. Consider a replicated \ac{KVS}, where each node
+maintains a local \ac{KVS}. When writing to the local key
 value store, there are three possible approaches:
 \begin{enumerate}
     \item[A.] The node synchronizes the written object
