@@ -122,11 +122,7 @@ administrator can tune the number of replicas based on how prone
 to faults they are and the desired availability and durability
 levels.
 
-\bsd{I feel that some of the key takeaways of these tradeoffs are
-missing. This sounds too much as a list of challenges, without
-any immediate resolution}
-
-In this chapter, we will present \ac{R2-S2}, a replicated
+In this chapter, we will present the \acf{R2-S2}, a replicated
 \ac{KVS} based on LevelDB~\cite{leveldb}, a single node \ac{KVS}
 based on \ac{LSM}~\cite{lsm}, where we have implemented several modes
 of replication to compare between the different approaches. The
@@ -142,43 +138,54 @@ Section~\ref{sec:r2s2evaluation}.
 \section{\ac{R2-S2} Design}\label{sec:r2s2design}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-This section presents the design of replicated storage systems
+This section presents the design of \ac{R2-S2}
 based on the principle of \emph{asymmetric synchronization}. However,
 before discussing our architecture in detail, it is worthwhile to
-present two baseline designs, which will be useful comparison
-points.
+present the three approaches that can be used to synchronize
+replica state to stable storage.
 
-\paragraph{Safe but Slow --- SbS.} This architecture relies on
-only replying to write requests after writing to persistent
-storage. Enabling batching will introduce a large latency delay,
-but there is no data loss possible.
+\paragraph{Sync immediately.} When receiving an object to write, a
+replica immediately writes and flushes the object to stable
+storage, issuing the reply afterwards. This prevents batching,
+which favours \emph{durability} and \emph{latency} in detriment
+of \emph{throughput}.
 
-\paragraph{Fast but Faulty --- FbF.} Here, replicas reply after
-writing to memory. Synchronizing to persistent storage is done in
-the background, enabling a very fast system. However, it requires
-that a subset of replicas is always up --- otherwise data will be
-permanently lost.
+\paragraph{Batch and wait.} When receiving an object to write, a
+replica places the object in a batch and waits for this batch to
+be flushed to stable storage. Afterwards, the reply can be
+issued. Since there is batching and objects are being persisted
+before replying, this approach favours \emph{durability} and
+\emph{throughput} at the cost of \emph{latency} (which can be
+very large if the batch takes a long time to be filled due to a
+lack of writes).
 
+\paragraph{Move fast and break things.} In this approach,
+replicas place the object in the batch (i.e.:\ volatile memory)
+and reply immediately. This achieves the best \emph{latency} and
+\emph{throughput}, sacrificing \emph{durability} since replicas
+can suffer a rollback if they crash and restart.
 
-We now present the principles and goals for our design:
+We now present the principles and goals for the design of
+\ac{R2-S2}:
 \begin{enumerate}
     \item \textbf{Strong Persistence}: data loss should never
         ocurr, even in the presence of arbitrary node crashes;
 
     \item \textbf{Performance}: the architecture should yield
-        performance gains compared to SbS\@;
-
+        performance gains compared to
+        Approaches A and B\@;
+\if 0
     \item \textbf{Generality}: the architecture should be as
         generic as possible. In particular, it should be
         applicable to a variety of replication protocols.
+\fi
 \end{enumerate}
 
-Note that none of our baselines satisfy all requirements.
-Although both are generic, the FbF architecture fails our notion
-of \emph{strong persistence}: if enough replicas crash before
-writing to persistent storage, data is lost. Similarly, the SbS
-architecture is overly cautious when writing to persistent
-storage, failing our performance goal.
+Note that none of our baselines satisfy all requirements:
+approaches A and B achieve
+\emph{strong persistence} but not the performance requirement.
+Approach C does meet the performance
+requirement, but does not satisfy \emph{strong persistence}.
 
 In the remainder of this section, we will describe
 \emph{asymmetric synchronization}, the key technique which realizes the
@@ -190,49 +197,39 @@ performance.
 \subsection{Asymmetric Synchronization}\label{ssec:asymmetric_synchronization}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Asymmetric synchronization works by separating the replica set
+Asymmetric synchronization is the key to extracting performance
+in \ac{R2-S2}. The core idea is to partition the replica set
 into two disjoint subsets: the \emph{volatile set}
-$\mathbbm{r}$, composed of the replicas which eagerly reply to the
-request (before synchronizing to persistent storage); and the
-sync set $\mathbb{F}$, the replicas which wait until the data is
-persisted before replying. The intersection between a write
-quorum $\mathbb{W}_Q$ and the sync set is the \emph{critical
-sync set}. When issuing a write request, each replica is told in
-which set they belong to, and act accordingly.
+$\mathbbm{R}$, composed of the replicas which eagerly reply to the
+request before synchronizing to persistent storage (and thus can
+suffer a rollback on restart); and the sync set $\mathbb{F}$, the
+replicas which wait until the data is persisted before replying.
+When issuing a write request, each replica is told in which set
+they belong to, and act accordingly. An important subset of
+$\mathbb{F}$ is its intersection with the write quorum
+$\mathbb{W}_Q$. This subset is comprised by the replicas that are
+critical to the performance of the write operation (in
+particular, its latency) and is referred as the \emph{critical
+sync set} from now on.
 
 \paragraph{Achieving strong persistence.} To achieve strong
 persistence, it is sufficient that the critical sync set is
 never null. This implies that there is always at least one
 replica in every write quorum which persisted the value, making
-it recoverable. This is guaranteed by the restart-rollback quorum
-system, by setting the maximum size of $\mathbbm{r}$ to $r$,
+it recoverable. This is guaranteed by the \ac{RR} quorum
+system, by setting the maximum size of $\mathbbm{R}$ to $M_R$,
 since the volatile replicas are the ones which can suffer the rollback on
-restart, and as such the volatile set size must never exceed $r$.
+restart.
 
-\paragraph{Extracting performance.} To minimize latency and
-maximize throughput, we further separate the write behaviour
-within replica set. In particular, the critical sync set
-operates differently from its non-critical counterpart. This is
-because the critical sync set is the limiting latency factor
-within a single operation, and as such should write to persistent
-storage immediately. The non-critical sync set can wait until it
-has an adequately sized batch to synchronize. The storage layer needs
-to support both use-cases efficiently.
+The key to improving throughput is scheduling. Intuitively, it is
+important to distribute the burden of syncing to disk among the
+replica set, allowing all the replicas to batch eventually.
 
-The key to improving throughput is precise scheduling. By
-choosing different eager, critical sync and non-critical sync
-sets, we can guarantee that when a replica is in the critical sync set it
-has enough data queued in memory, amortizing the persistent
-access cost.
-
-Compared to SbS, this construction can yield throughput or latency benefits,
-depending on how the the tradeoff is tuned in SbS --- if SbS writes to
-persistent storage immediately, our design provides a throughput
-improvement; if SbS waits for a batch, our design provides better
-latency. Regretablly, it is impossible to match the performance
-of FbF\@: this would require removing any persistent accesses from
-the critical path, making $\mathbb{W}_Q \cap \mathbb{F} =
-\varnothing$, violating strong persistence.
+Regretablly, although this approach does yield performance
+benefits compared to approaches A and B, it is impossible to
+match the performance of C\@: this would require removing any
+persistent accesses from the critical path, making $\mathbb{W}_Q
+\cap \mathbb{F} = \varnothing$, violating strong persistence.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -241,71 +238,47 @@ the critical path, making $\mathbb{W}_Q \cap \mathbb{F} =
 
 The storage layer plays a crucial role in realizing the
 performance potential of the system. It needs to efficiently support
-three different types of write operations --- eager, immediate
-sync and delayed sync. It will also need to support read operations
+three different types of write operations, one for each of the
+different baseline approaches. It will also need to support read operations
 efficiently. Figure~\ref{fig:storage_layer} shows a diagram of
 the storage layer and its data-structures.
 
-An LSM is employed as the core data structure of the storage
+An \ac{LSM} is employed as the core data structure of the storage
 layer, enabling the sequential writes required for batching as
-well as providing reasonable read performance.
-
-To further speed up reads and enable batching, there is an in-memory
-object cache. Values are marked \emph{dirty} if they have not yet been
-written to persistent storage (because they are waiting to be
-included in the next batch). Although the cache is organized as a
-table to support fast reads, the dirty values form a linked list,
-to avoid duplication and guaranteeing quick access when it is
-time to create a batch.
+well as providing reasonable read performance. There exists a
+log, used to write values that need to be synced immediately, and
+an in-memory batch for values that should be batched. To further speed
+up reads there is an optional in-memory object cache.
 
 There is an additional in-memory cache, which only stores the
 object versions. This is useful because versions are a staple of
 most replication protocols and several of them require reading
 the current version before writing a new one. Since versions are
 constant-sized and small, the capacity of the version cache can
-be significantly larger than that of the object cache.
+be significantly larger than that of the object cache. This cache
+is required to synchronize concurrent writes of different
+versions to the same key. When the node is writing a value, it required to
+check the version cache, populating it if required, where an
+atomic update is executed on the version to ensure that an old
+version does not override a newer version it is racing with.
 
 Satisfying read requests is trivial: the appropriate cache is
 consulted (depending on whether it is an object or a version
-read), falling back on the LSM tree in the event of a miss.
+read), falling back on the \ac{LSM} and the log in the event of a miss.
 
-Handling volatile writes and delayed synchronized writes is remarkably similar: the
-value is placed in the in-memory cache and marked dirty by
-linking it into the linked list. They differ by when the write is
-actually externalized: the volatile write returns after the cache
-write; the delayed synchronized write waits for the value to be
-synchronized to the LSM tree. When handling an immediate
-synchronized write, the value is
-placed into a fresh batch and elements are popped from dirty
-object linked list until the batch is large enough, at which
-point it is committed to the LSM tree and the immediate synchronized write
-returns (as well as any delayed synchronized writes which were included
-in the batch).
+Handling batched writes is also quite simple: the
+value is placed in the batch and eventually a background thread
+will flush the batch into the \ac{LSM}.
 
-Note that if the dirty object linked list is large enough
-for two batches, a single batch could be created and committed.
-This would still leave enough elements to create a batch in the
-event of an immediate synchronized write of a small object. However, if
-two such writes arrived, we would have to synchronize a write without
-ammortization, losing throughput. As such, we delegate all
-synchronization decisions to the schedule.
+If the object should be immediately synced, it is placed into the
+persistent log, and incorporated into the \ac{LSM} at a later
+time.
 
-\bsd{It pains me to say, but a god-forsaken ML-based scheduler
-would be a great fit. This is because the size of writes weighs
-heavily on the schedule, but cannot be known ahead of time.
-However, an reinforcement learning network would adapt to traffic
-as it came\ldots. We can also make the schedules conditional on
-the size of the object, but this becomes very difficult}
-
-\begin{figure}[ht]
+\begin{figure}[t]
     \centering
-    \includegraphics[width=.8\linewidth]{img/storage_layer}
+    \includegraphics[width=.75\linewidth]{img/storage_layer}
     \caption{Diagram of the Storage Layer}\label{fig:storage_layer}
 \end{figure}
-
-\bsd{Possible speedup: on version cache miss, we could just read
-the beginning of the log entry, if we serialize the version at
-the head of the object}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Scheduling}\label{ssec:schedule}
@@ -313,17 +286,13 @@ the head of the object}
 
 
 As we have covered, a good schedule is crucial to realize the
-performance potential of the architecture. A \emph{schedule} for
-replica $i$, $S_i$ is a sequence of modes of operation (eager,
-immediate sync or delayed sync) which the replica will follow.
-We call the set of replica schedules the \emph{system schedule}.
-We say that the system schedule is \emph{valid} if the size of
-volatile set for each operation is less than or equal to $r$. All valid
-schedules guarantee strong persistence, but this is not enough to
-ensure performance. The \emph{scheduler} is the module that
-generates a schedule.
-
-\subsubsection{Approaches to scheduling}\label{sssec:scheduling_approach}
+performance potential of the architecture. A \emph{schedule} is a
+sequence $S$, where $S_i^j$ is the mode of operation (batch and
+reply, batch and wait or sync to log) to be applied by replica
+$i$ for the $j^\text{th}$ write operation. The
+schedule is said to be \emph{valid} if the volatile set (i.e.:
+the number of batch and reply modes of operation) does not exceed
+$M_R$, for every $S^j$. Thus, any valid schedule guarantees strong persistency.
 
 There are several approaches to scheduling. Which is preferable
 is non-obvious beforehand: the schedule will be sensitive to the
@@ -333,110 +302,50 @@ the operation load. In the preliminary evaluation in
 evaluation of some of the scheduling policies described
 here.
 
-\paragraph{Static Schedules.} These schedules apply a fixed
-policy decided beforehand, irrespective of the runtime
-characteristics of the system. Such a schedule can be
-\emph{blind} or \emph{informed}, depending on whether it uses
-deployment information or not (eg: network topology, hardware
-specification). Examples of blind schedules: \emph{random}
-schedule, \emph{round-robin} schedule.
+At a high level, there are two types of schedules: \emph{static}
+schedules, which can pre-determined ahead of time, and as such
+independent of the load the system is being subjected to; and
+\emph{dynamic} schedules, which are computed on the fly and as
+such can be \emph{reactive} to the load and current status of the
+system.
+\bsd{maybe remove: only did static schedules}
 
-\paragraph{Dynamic schedules.} Information reported by the
-replicas (eg: storage layer performance, amount and size of dirty
-objects, network behaviour, detected/suspected faults) is used by
-the scheduler to constantly adapt to create the best schedule
-possible. A dynamic scheduler can be implemented using
-SMT solvers~\cite{smt} or a neural network. \bsd{develop}
 
-In the case of dynamic schedules, the performance of the
-scheduler can be of importance. To understand why, it is
-important to distinguish between \emph{ahead-of-time} (AoT) and
-\emph{just-in-time} (JIT) schedulers.
+\paragraph{Constant Schedule.} A constant schedule is one where
+all write operations use the same modes of operation for each
+replica. In other words, all $S^j$s are equal. This schedule is,
+at face value, a poor choice, since it prevents the replicas in the
+critical set from ever batching. However, if the replica set is
+very heterogeneous, this might be used to provide a tailored
+approach to the hardware characteristics.
 
-An AoT scheduler will compute several entries of the schedule beforehand. When a
-request arrives, it simply consults the schedule. If the schedule
-is close to finishing or new information arrives, the scheduler
-can compute or recompute schedule entries in the background.
-However, these schedulers suffer from a major problem: the size
-of the objects to be written is unknown ahead of time (although
-it can possibly be predicted, studying the history).
+\paragraph{Random Schedule.} A schedule where replicas are
+randomly allocated to the sync and volatile sets (based on the
+sizes they need to have for the schedule to be valid).
 
-The size of the object is crucially important for performance, as
-it will impact whether the critical sync set replicas have
-enough data to form a batch or not. By employing a JIT, we can
-factor in the object size when creating the schedule.
-Nevertheless, the scheduler now sits on the critical path of the
-write operation: if it takes too long to generate the schedule,
-it risks destroy any possible performance gains it would achieve.
+\paragraph{Round Robin Schedule.} A schedule where the sync set
+is shifted at each round. For instance, in a system with $N = 5,
+M_R = 2$, replicas $0, 1, 2$ are the sync set at step $j$, and
+at step $j + 1$ replicas $3, 4, 0$ become the sync set, and so
+on.
 
-\bsd{there is more to be said about this topic\ldots}
-
-\subsubsection{Computing and executing schedules}\label{sssec:schedule_computation}
-
-Up until this point we have been describing the scheduler as if
-it is centralized, with perfect information. This can at times
-closely match practice: in leader-based protocols, the scheduler
-is collocated with the leader. All replicas monitor their own
-performance and communicate it periodically to the leader
-(possibly piggybacking this information with operation replies).
-
-In leaderless protocols, this is unfortunately impossible, as it
-is the clients which need to compute and execute the schedule.
-Even if somehow a client could compute (or obtain) the schedule,
-in the event of concurrency client synchronization would be
-required to correctly execute the schedule. This synchronization
-would be expensive (if not outright impossible).
-
-To sidestep this issue, in leaderless protocols there is a
-separation of responsibilities regarding the schedule: the
-clients are responsible for \emph{computing} the schedule and
-replicas simply \emph{execute} it. When a fresh client makes it
-first request (employing blind scheduling), the replicas might
-ignore the schedule transmitted by the requests \emph{if they
-have a previous schedule installed}. If they do not, they accept
-the scheduling suggestion and relay back their monitoring
-information. With this, the client can then compute a schedule
-and install it to the replicas.
-
-Figure~\ref{fig:replica} shows an overview of the scheduling
-architecture within a replica.
-
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=.8\linewidth]{img/replica}
-    \caption{Replica scheduling architecture. A monitor is attached to
-    the storage layer, measuring its performance and passing that
-    information either to the local scheduler or to other
-    replicas/clients. If the replica is a leader, the scheduler
-    collects performance reports and creates schedules for itself
-    and other replicas. Otherwise, it simply uses the installed
-    schedule.}\label{fig:replica}
-\end{figure}
-
-\bsd{Ommitted notes: a schedule installation requires SMR, to
-make sure all replicas install the same schedule in the event of
-concurrent clients}
-
-\bsd{Unsolved problem: request reordering/loss. This can
-make the decentralized schedule execution invalid.
-\\
-\\
-Idea: have per-client schedules. This involves having separate
-dirty lists per client, load-balancing between clients and some
-sort of orphan collection}
+Assuming a good random number generator, both the random and the
+round robin schedules should evenly distribute the load among the
+replicas. However, the random scheduler may offer less
+predictable performance.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Parametrizing the System}\label{sec:r2s2parametrization}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 To parametrize our system, we effectively need to choose
-appropriate values for $r$ and $f$. We employ a data-driven
+appropriate values for $M_R$ and $F$. We employ a data-driven
 approach to this problem. Relying on real-world information about
 the availability and reliability of components, we can predict
 the reliability and availability of the system as a function of
-$r$ and $f$. Choosing the adequate values becomes an exercise of
-setting the desired reliability/availability and solving for $r$
-and $f$.
+$M_R$ and $F$. Choosing the adequate values becomes an exercise of
+setting the desired reliability/availability and solving for $M_R$
+and $F$.
 
 The availability of the system (probability that it is available
 at a particular point in time) is impacted by the availability of
@@ -481,7 +390,29 @@ reliability of the system in these two scenarios.
 \section{Implementation}\label{sec:r2s2implementation}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\bsd{TODO}
+We implemented \ac{R2-S2} using LevelDB~\cite{leveldb} as the
+underlying storage layer and our own replication layer on top of
+it. This was extremely helpful since LevelDB already implements
+the \ac{LSM}, the persistent log and the optional object cache
+out of the box, and provides for two out of the three modes of
+operation: batch and reply and sync and reply. For the
+replication layer, we chose to implement the \ac{ABD} distributed
+register protocol, since it matches perfectly with the \ac{KVS}
+interface.
+
+The replication layer was implemented in Rust with the request transport
+being handled by gRPC~\cite{grpc}. The \ac{R2-S2} client library
+provides a shim that interacts with the replication layer that
+coordinates the \ac{ABD} operations. The \ac{R2-S2} server
+receives requests via gRPC and manages the timestamp cache and
+its embedded LevelDB instance. Figure~\ref{fig:r2s2arch}
+summarizes the architecture of the prototype.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\linewidth]{img/r2s2_arch}
+    \caption{Architecture of the \ac{R2-S2} prototype}
+\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Evaluation}\label{sec:r2s2evaluation}
