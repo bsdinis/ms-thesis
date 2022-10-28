@@ -290,12 +290,82 @@ replicated systems, using the system configuration (modified
 using consensus) as the source of truth is a natural mechanism to
 prevent forking attacks.
 
-\section{Single-node storage systems}
-\bsd{TODO
-\begin{itemize}
-    \item Batching
-    \item LevelDB, RocksDB (LSM)
-\end{itemize}
+\new{
+\section{Single-node \acfp{KVS}}
+
+One way of implementing replicated \acp{KVS} is to implement a
+replication layer on top of a single-node \ac{KVS}. Consequently,
+it is important to understand the overall design of a single-node
+\ac{KVS}, as well as its tradeoffs.
+
+\subsection{\acfp{LSM-tree}}
+
+The key data structure for modern \acp{KVS} is the \acf{LSM-tree}.
+Examples of industry-grade \acp{KVS} relying on \acp{LSM-tree} include
+LevelDB~\cite{leveldb},
+BigTable~\cite{bigtable}, Apache Cassandra~\cite{cassandra} and
+RocksDB~\cite{rocksdb}. \acp{LSM-tree} have also been the topic of
+a lot of recent research~\cite{lsm1,lsm2,lsm3,lsm4}.
+
+
+The main objective of \acp{LSM-tree} is to improve the
+scalability of both reads and writes of persistent \acp{KVS}. To
+scale writes, the \ac{LSM-tree} creates an in-memory batch of
+objects. Once it has filled up, it sorts the batch and sends it
+to disk where it becomes a \emph{run}. To keep the data organized
+for efficient reads, the \ac{LSM-tree} maintains similarly sized
+runs on levels of exponentially increasing sorted runs. Once a
+particular level becomes too full, it is sort-merged into a run
+of the following level. To perform a read, a binary search is
+performed on each run to find the object. To optimize IO costs,
+two approaches are employed. First, arrays of fence pointers are
+stored in memory, which allows us to perform the binary searches
+in memory, reducing the IO cost per run to 1. Additionally, a
+Bloom filter~\ref{bloom} can be constructed per run to filter
+upfront which runs need not be checked. Figure~\ref{fig:lsm}
+summarizes the architecture of an \ac{LSM-tree}.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{img/lsm_read}
+    \caption{\acf{LSM-tree}. A read request first consults the
+    bloom filters (in this case, the first yields a false
+    positive, the second a true negative and the third a true
+    positive) and subsequently performs a binary search on the
+    fence pointers to find the block to get in each run, finding
+    the target key (shaded) in the third run.}
+\end{figure}
+
+There are two classes of designs for \acp{LSM-tree}, levelling
+and tiering \acp{LSM-tree}. In the tiereing approach, each level
+gathers runs from the previous level, sorting them only when it
+reaches capacity and pushing the newly-sorted run to the next
+level. In the levelling approach, a run from the previous level
+is merged as soon as it is received, ensuring the run is always
+sorted. The tiering approach is tailored to write-intensive
+workloads, since it does less work per object, while the
+levelling approach is more read-optimized, as the runs are in a
+sorted state, allowing for more efficient lookups.
+
+\begin{figure}[t]
+    \begin{minipage}[t]{0.45\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{img/lsm_tiered}
+        \caption{Tiered \ac{LSM-tree}.}\label{fig:lsm_tiered}
+    \end{minipage}
+    \begin{minipage}[t]{0.45\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{img/lsm_leveled}
+        \caption{Leveled \ac{LSM-tree}.}\label{fig:lsm_leveled}
+    \end{minipage}
+    \caption{Comparison between a tiered and leveled
+    \ac{LSM-tree}. The dashed boxes represent the capacity of the
+    level and contiguous blocks sorted runs. In the tiered
+    \ac{LSM-tree} adding another run to the first level would
+    trigger a sort-merge which would create another run at the
+    second level. In the leveled \ac{LSM-tree}, the each level is already sorted. }
+\end{figure}
+
 }
 
 \section{Persistence in replicated distributed systems}

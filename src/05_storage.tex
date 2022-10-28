@@ -78,7 +78,8 @@ performance penalty, some replicated systems consider data to be persisted if it
 present in volatile memory at a sufficiently large subset of replicas~\cite{pbft}
 (i.e.\ persistence through replication). Such an approach is not
 consensual, with other authors insisting that data must be
-present in stable storage to be considered persisted~\cite{}.
+present in stable storage to be considered
+persisted~\cite{bolosky:paxos}.
 
 % Question whether this needs to be a dichotomy
 We argue that these two properties --- performance and
@@ -124,7 +125,7 @@ levels.
 
 In this chapter, we will present the \acf{R2-S2}, a replicated
 \ac{KVS} based on LevelDB~\cite{leveldb}, a single node \ac{KVS}
-based on \ac{LSM}~\cite{lsm}, where we have implemented several modes
+based on \acp{LSM-tree}~\cite{lsm}, where we have implemented several modes
 of replication to compare between the different approaches. The
 design of the \ac{R2-S2} system is presented in
 Section~\ref{sec:r2s2design} and the guidelines for system
@@ -243,7 +244,7 @@ different baseline approaches. It will also need to support read operations
 efficiently. Figure~\ref{fig:storage_layer} shows a diagram of
 the storage layer and its data-structures.
 
-An \ac{LSM} is employed as the core data structure of the storage
+An \ac{LSM-tree} is employed as the core data structure of the storage
 layer, enabling the sequential writes required for batching as
 well as providing reasonable read performance. There exists a
 log, used to write values that need to be synced immediately, and
@@ -264,14 +265,14 @@ version does not override a newer version it is racing with.
 
 Satisfying read requests is trivial: the appropriate cache is
 consulted (depending on whether it is an object or a version
-read), falling back on the \ac{LSM} and the log in the event of a miss.
+read), falling back on the \ac{LSM-tree} and the log in the event of a miss.
 
 Handling batched writes is also quite simple: the
 value is placed in the batch and eventually a background thread
-will flush the batch into the \ac{LSM}.
+will flush the batch into the \ac{LSM-tree}.
 
 If the object should be immediately synced, it is placed into the
-persistent log, and incorporated into the \ac{LSM} at a later
+persistent log, and incorporated into the \ac{LSM-tree} at a later
 time.
 
 \begin{figure}[t]
@@ -393,7 +394,7 @@ reliability of the system in these two scenarios.
 We implemented \ac{R2-S2} using LevelDB~\cite{leveldb} as the
 underlying storage layer and our own replication layer on top of
 it. This was extremely helpful since LevelDB already implements
-the \ac{LSM}, the persistent log and the optional object cache
+the \ac{LSM-tree}, the persistent log and the optional object cache
 out of the box, and provides for two out of the three modes of
 operation: batch and reply and sync and reply. For the
 replication layer, we chose to implement the \ac{ABD} distributed
@@ -411,7 +412,8 @@ summarizes the architecture of the prototype.
 \begin{figure}[ht]
     \centering
     \includegraphics[width=\linewidth]{img/r2s2_arch}
-    \caption{Architecture of the \ac{R2-S2} prototype}
+    \caption{Architecture of the \ac{R2-S2}
+    prototype}\label{fig:r2s2arch}
 \end{figure}
 
 The client library was implemented in approximately 2KLoC of
