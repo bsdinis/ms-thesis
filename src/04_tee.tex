@@ -1,11 +1,10 @@
 \fancychapter{\ac{TEE} replication using the \ac{RR} model}\label{chap:tee}
 \cleardoublepage{}
 
-\new{
 As we have discussed previously, \acp{TEE} are an interesting
 option deploying replicated systems in an untrusted public cloud.
 In this chapter, we present the \acf{TEEMS}, a replicated metadata
-service for trusted cloud storage. \ac{TEEMS} a double purpose in
+service for trusted cloud storage. \ac{TEEMS} has a double purpose in
 the context of this dissertation: it showcases a practical system
 using the \ac{RR} fault model and associated register and
 \ac{SMR} protocols and provides the means of enhancing existing
@@ -20,7 +19,6 @@ Section~\ref{sec:teems_impl}, which describes the implementation
 of \ac{TEEMS}. Finally, Section~\ref{sec:teems_eval} presents an
 extensive evaluation of \ac{TEEMS} using real-world workloads
 across different deployments.
-}
 
 \section{\ac{TEEMS}: Metadata service for trusted cloud
 storage}\label{sec:teems_design}
@@ -30,17 +28,19 @@ storage}\label{sec:teems_design}
 
 \acp{TEE} have enabled services like Azure Confidential
 Computing~\cite{azure-conf} and Google Confidential
-VMs~\cite{google-confVM}, where Cloud tenants can use compute services
-without trusting the platform provider.  However, the strong security
-properties from \acp{TEE} do not automatically extend to Cloud storage.
-%
-A \ac{TEE}-encapsulated metadata service, replicated for
+VMs~\cite{google-confVM}, where Cloud tenants can use compute
+services without trusting the platform provider.  However, the
+strong security properties from \acp{TEE} do not automatically
+extend to cloud storage. \new{To create a cloud-based system with
+similar strong security guarantees of \acp{TEE}, it is only
+natural to consider using \acp{TEE} as its building blocks.} A
+\ac{TEE}-encapsulated metadata service, replicated for
 availability and fault-tolerance, can maintain encryption keys
 and version information for data blobs stored in untrusted Cloud
 storage.  By ensuring confidentiality, integrity, and freshness
-of the metadata, the service extends the same guarantees to
-the encrypted and versioned data blobs. Moreover, by supporting
-an atomic update operation on metadata, the service enables
+of the metadata, the service extends the same guarantees to the
+encrypted and versioned data blobs. Moreover, by supporting an
+atomic update operation on metadata, the service enables
 concurrent sharing of data blobs.
 %\update{Fundamentally, even assuming an efficient way for
 %storing the state of a single \ac{TEE}, this solution would still be
@@ -52,14 +52,21 @@ concurrent sharing of data blobs.
 %requires atomic, concurrent updates of state blobs and their
 %associated metadata (e.g.\ counter).}
 
-%Plus, even the research proposals to address these limitations suffer from shortcomings such as requiring specialized hardware or an uninterruptible power supply~\cite{ice,memoir}, the inability to tolerate system-wide power failure~\cite{rote}, \pd{Given that multiple reviewers have dismissed our previous point by pointing to the ubiquity of UPSs, I wonder if we should focus on the following argument (lack of support for concurrent sharing). We already call it out as ``more fundamental'', so why not start with it and downplay the others?}
+%Plus, even the research proposals to address these limitations
+%suffer from shortcomings such as requiring specialized hardware
+%or an uninterruptible power supply~\cite{ice,memoir}, the
+%inability to tolerate system-wide power failure~\cite{rote},
+%\pd{Given that multiple reviewers have dismissed our previous
+%point by pointing to the ubiquity of UPSs, I wonder if we should
+%focus on the following argument (lack of support for concurrent
+%sharing). We already call it out as ``more fundamental'', so why
+%not start with it and downplay the others?}
 
 We designed and implemented a replicated metadata service called
-\ac{TEEMS} (for \ac{TEE}-based Metadata Service) based on the \ac{RR} fault
-model.
-%\ac{TEEMS} can be coupled with encrypting data on an unmodified cloud storage service, and the
-\ac{TEEMS}'s replicas can be hosted in a diverse set of cloud providers for
-high availability and resilience.
+\ac{TEEMS} (for \ac{TEE}-based Metadata Service) based on the
+\ac{RR} fault model. \ac{TEEMS}'s replicas can be hosted in a
+diverse set of cloud providers for high availability and
+resilience.
 %
 \ac{TEEMS} provides a read/write interface for metadata and guarantees that
 readers always receive the metadata (e.g., encryption key) of the most
@@ -67,18 +74,10 @@ recent version of a data blob.  \ac{TEEMS} also supports access control
 policies for metadata, and therefore allows clients to selectively
 share the associated data blobs.  The service therefore enables
 trusted storage services that extend the strong guarantees of today's
-\ac{TEE}-based cloud compute services to persistent storage. The full
-\ac{TEEMS} interface is summarized in Table~\ref{tab:teems}.
-% PD: seems unnecessary
-%The architecture is agnostic to the actual policies being implemented
-%--- UNIX-style group-based access control, more granular list-based
-%policies or even custom policies are all possible to implement in
-%\ac{TEEMS}. For simplicity, our prototype uses UNIX-style access control.
-
+\ac{TEE}-based cloud compute services to persistent storage.
 
 \subsection{\ac{TEE}-grade cloud storage with \ac{TEEMS}}
 
-%\pd{Put more emphasis on concurrent sharing? Here it is all about freshness again.}
 Clients can use \ac{TEEMS} to lend untrusted cloud storage \ac{TEE}-level
 guarantees, by using the API in Table~\ref{tab:teems}.
 \ac{TEEMS} maintains metadata for each data blob, i.e. a short summary of
@@ -110,18 +109,21 @@ service only for storage and availability.
 \end{table}
 
 Concurrent sharing of mutable data fundamentally requires a
-read-modify-write operation (i.e.\ some form of SMR). However, state machine operations are significantly
-more expensive than read/write register operations. \ac{TEEMS}
-minimizes the use of state machine operations in situations where
-writers typically perform multiple updates of a data blob before
-other writers perform an update as follows.  We mediate access to
-the metadata via single writer policies, and implement policy
-changes via the more expensive read-modify-write state machine operation.
-Simply reading and updating the metadata of a blob (by the
-current writer) is implemented using efficient distributed
-register operations.  This approach ensures safe concurrent
-sharing of data blobs while minimizing the more expensive policy
-changes to cases when the writer for a blob changes.
+read-modify-write operation (i.e.\ \bsd{didn't understant the
+comment}some form of \ac{SMR}). However, state machine operations
+are more expensive than read/write register operations.
+\ac{TEEMS} minimizes the use of state machine operations in
+situations where writers typically perform multiple updates of a
+data blob before other writers perform an update as follows.  We
+mediate access to the metadata via single writer policies, and
+implement policy changes via the more expensive read-modify-write
+state machine operation. Simply reading and updating the metadata
+of a blob (by the current writer) is implemented using efficient
+distributed register operations.  This approach ensures safe
+concurrent sharing of data blobs while minimizing the more
+expensive policy changes to cases when the writer for a blob
+changes. The full \ac{TEEMS} interface is summarized in
+Table~\ref{tab:teems}.
 
 Storage operations involve the following sequence of steps.  When an
 operation to write a new data blob $d$ associated with id $i$ is
@@ -143,20 +145,20 @@ write and the metadata update complete. Finally, the library
 deletes earlier versions of the blob from the data store.
 
 When a read for id $i$ is invoked, the client library starts by
-querying the \ac{TEEMS} service for the most recent version of the
-metadata associated with the id $i$. After retrieving the tuple
-$\langle i,k_i,i_{store},MAC(d_i) \rangle$, the client library
-then uses the id $i_{store}$ to retrieve the encrypted data from
-(one of) the untrusted storage systems. This encrypted data
-$\langle d'\rangle_{k_i}$ is read and then decrypted using $k_i$,
+querying the \ac{TEEMS} service for the most recent version of
+the metadata associated with the id $i$. After retrieving the
+tuple $\langle i,k_i,i_{store},MAC(d_i) \rangle$, the client
+library then uses the id $i_{store}$ to retrieve the encrypted
+data from untrusted storage. This encrypted data $\langle
+d'\rangle_{k_i}$ is read and then decrypted using $k_i$,
 obtaining $d'$ and $MAC(d')$. Finally, its integrity  is
 validated by comparing $MAC(d')$ and $MAC(d_i)$.
 
-While \ac{TEEMS} ensures the confidentiality, intgrity, and freshness of
-stored data blobs, the untrusted storage us relied upon for
-availability of data blobs. For increased availability, clients may
-storage multiple copies of a data blob (or erasure-coded fragments) at
-independent storage providers.
+While \ac{TEEMS} ensures the confidentiality, integrity, and
+freshness of stored data blobs, the untrusted storage us relied
+upon for availability of data blobs. For increased availability,
+clients may store multiple copies of a data blob (or
+erasure-coded fragments) at independent storage providers.
 %
 Finally, the access to the untrusted storage can be optimized by
 employing caching at the client. We can either cache full blobs (to
@@ -189,14 +191,13 @@ policy and incrementing the epoch number, if such permission is
 granted. The epoch number increment is then immediately
 visible to register operations.
 
-%\input{protocols/teems-slow.tex}
+\input{protocols/teems-slow.tex}
 \input{protocols/teems-fast.tex}
 
 For reads and writes, a slow but trivially correct combination of
 the protocols would be to issue a read operation on the state
 machine to obtain the policy and then issue the register
-operation, retrying if the epoch number has advanced.
-%, as described in Figure~\ref{fig:teems_slow_correct}.
+operation, retrying if the epoch number has advanced, as described in Figure~\ref{fig:teems_slow_correct}.
 The correctness of the combination hinges on the fact that 1) the
 policy is correctly read and enforced; and 2) by ensuring the epoch
 has not changed between checking the policy and operating on the
@@ -274,6 +275,7 @@ single-threaded event loop and 6KLoC (\ac{TEEMS}). Additionally,
 the client library, which interacts with the replicas and with
 the untrusted storage, takes up to 5KLoC (\ac{TEEMS}).
 
+\bsd{TODO: expand}
 
 \section{Evaluation}\label{sec:teems_eval}
 
@@ -340,7 +342,7 @@ $95^{\text{th}}$ percentiles.
 %-------------------------------------------------------------------------------
 \subsection{\ac{TEEMS}-based storage}\label{ssec:eval_deploy}
 %-------------------------------------------------------------------------------
-Next, we focus on understanding the performance of our example
+First, we focus on understanding the performance of our example
 application, the  \ac{TEEMS}-based secure storage service, under
 different deployments, which differ in the relative location of
 the client, the metadata servers, and the type and location of

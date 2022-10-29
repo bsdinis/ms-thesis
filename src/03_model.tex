@@ -19,14 +19,14 @@ well-established protocols: the \ac{ABD}~\cite{abd} protocol for
 a read-write register and the Paxos~\cite{paxos} protocol for
 \ac{SMR}. We conclude this chapter with a discussion.
 
-\new{We then provide a performance evaluation in the context of
+We then provide a performance evaluation in the context of
 \acp{TEE} using micro-benchmarks. We compare the \ac{CFT}
 protocols with their adaptations to the \ac{RR} model and the
 equivalent counterparts in the \ac{BFT} world. This demonstrates
 the viability and usefullness of the \ac{RR} model in the context
 of \ac{TEE}-based replication, showcasing how it enables
 protocols with both correctness (otherwise only found in
-\ac{BFT}) and speed (present in \ac{CFT}-based replication)}.
+\ac{BFT}) and speed (present in \ac{CFT}-based replication).
 
 \section{Motivation}\label{sec:motivation}
 
@@ -95,9 +95,9 @@ safe migration of \ac{TEE} computations.
 
 Note that state continuity implies fork
 protection~\cite{fork_lcm}, i.e., guaranteeing that no duplicate
-\ac{TEE} are instantiated with access to the same stored state.  We
-discuss fork protection and how it can be achieved in replicated
-systems in Chapter~\ref{chap:related}.
+\ac{TEE} are instantiated with access to the same stored state.
+We discussed how fork protection and how it can be achieved in
+replicated systems in Chapter~\ref{chap:related}.
 
 \paragraph{\ac{TEE} threat model and guarantees.}
 
@@ -133,7 +133,7 @@ protocols is not safe. Currently, \ac{BFT} protocols are typically used
 instead~\cite{teechain,rote}.  Using \ac{BFT} is safe but needlessly
 expensive, because these protocols are designed to tolerate arbitrary
 behavior, most of which is masked by the properties of \acp{TEE}.
-In the next section, we describe a novel fault model that
+In the Section~\ref{sec:model}, we describe a novel fault model that
 captures {\em precisely}\ the set of behaviors exhibited by \acp{TEE} with
 external state: crash failures plus state rollback after a restart.
 
@@ -171,26 +171,23 @@ compared to approach C, a very interesting tradeoff.
 
 \section{\ac{RR} model definition}\label{sec:model}
 
-Nodes in the \ac{RR} model are \new{network-connected processes} with external
+Nodes in the \ac{RR} model are network-connected processes with external
 persistent state. Nodes can crash at any point in their execution
 and restart at a later instant.  Additionally, nodes can suffer a
 rollback failure upon a restart, after which their externally
 stored, persistent state may be valid but stale.  After each
 restart, nodes flag their state as suspicious when replying to
 requests, signalling that they have restarted and thus may have
-been subject to a rollback. \new{Nodes} \sout{The integrity properties of \acp{TEE}
-imply that a node} can reliably determine when it has executed its
+been subject to a rollback. Nodes can reliably determine when it has executed its
 initialization code and thus restarted. A node stops indicating
 the suspicious flag once it is ascertained that its state is
 fresh, e.g., by ensuring that a sufficiently large number of
 other nodes have the same state (as we exemplify in
 Section~\ref{sec:protocol}).
 
-\new{Nodes execute the algorithm correctly.}\sout{The
-integrity of \acp{TEE} implies that, other than possibly holding stale
-persistent state after restarting, they correctly execute the
-expected code.} Figure~\ref{fig:states} illustrates the state
-transitions a node in the \ac{RR} model can go through.
+Nodes execute the algorithm correctly, with this exception
+concerning state freshness. Figure~\ref{fig:states} illustrates
+the state transitions a node in the \ac{RR} model can go through.
 
 \begin{figure}[t]
     \centering
@@ -200,8 +197,7 @@ transitions a node in the \ac{RR} model can go through.
       state.}\label{fig:states}
 \end{figure}
 
-\subsection{Background: replicated systems}\label{ssec:sys_model}
-\bsd{Move to related work?}
+\subsection{Replicated systems}\label{ssec:sys_model}
 
 Replication protocols make a separation between clients machines
 and replicas, where these two groups of nodes are connected by a
@@ -270,7 +266,7 @@ we replace a failed node with a new one that starts from the
 initial state of the system (or fetches a recent but possibly not
 the most recent one).
 %
-Furthermore, we define a liveness bound $F$, i.e. the system is live
+Finally, we define a liveness bound $F$, i.e. the system is live
 provided that no more than $F$ replicas are temporarily unreachable at
 any given moment, due to network partitions, power outages, or reboot.
 
@@ -432,7 +428,7 @@ databases, instead of following a simple read/write interface,
 support rich operations that read the most recent value of the
 system \emph{and} update it with a new value derived from the
 value that was read. To achieve this, their protocols may need to
-gather both a read and write quorum (i.e., $\max(R_Q, W_Q)$
+gather both a read and a write quorum (i.e., $\max(R_Q, W_Q)$
 replies). We dub these quorums \emph{super quorums} and use $S_Q$
 to represent their size.
 
@@ -467,7 +463,7 @@ protocols in the \ac{RR} model, as we will see next.
         \includegraphics[width=.32\linewidth]{img/RR_quorums_I1}
         \includegraphics[width=.32\linewidth]{img/RR_quorums_I2}\\
         (a) \hspace{2.3cm} (b) \hspace{.2cm}
-    \caption{Example of a \new{partially intersecting} \ac{RR} quorum system ($M_R=4$,
+    \caption{Example of a partially intersecting \ac{RR} quorum system ($M_R=4$,
     $F=2$). In (a), there were $3$ restarts (shaded) and $2$ rollbacks
     (crossed). Thus, the read quorum receives suspicious replies and
     grows larger, ensuring that both read quorums still intersect $W_Q$ in
@@ -477,13 +473,12 @@ protocols in the \ac{RR} model, as we will see next.
     disjoint, as noted by \textbf{I2}.}\label{fig:quorums}
 \end{figure}
 
-\new{
 \paragraph{Classifying \ac{RR} Quorum Systems}
 Reviewing the quorum properties in the previous paragraph,
 there is one property that stands out: \textbf{I2}. In quorum
-literature, the intersection of quorums is key property, but
-in \ac{RR}, it naturally arises that for some
-parametrizations this is not guaranteed to happen between all
+literature, the intersection of quorums is a key property, but
+in \ac{RR}, it naturally arises that, for some
+parametrizations, this is not guaranteed to happen between all
 read quorums. Here, two disjoint read quorums may in general
 reflect different system states~---~a phenomenon usually
 described as {\em split brain}.  This can happen when an
@@ -503,7 +498,7 @@ extraneous protocol infrastructure can be avoided. We classify
 \end{defin}
 
 \begin{defin} [Fully Intersecting \ac{RR} Quorum System]
-    A \ac{RR} Quorum System in which there for all pairs of read
+    A \ac{RR} Quorum System in which for all pairs of read
     quorums, $R_Q^1, R_Q^2$ $R_Q^1 \cap R_Q^2 \neq
     \O$ is true. In other words, where \textbf{I2} does not
     hold.
@@ -528,16 +523,17 @@ fully intersecting based on its parametrization:
     \end{equation}
 \end{theorem}
 \begin{dem}
-    To prove the intersection of any two read quorums, we
-    show that Equation~\ref{eq:charaterization_theorem} is equivalent to
-    $2 R_Q > N$, even when $s = 0$. This in turn is equivalent to
-    stating that the dimension of \emph{any} two read quorums from the
-    set of the smallest read quorums possible for a quorum
-    system (i.e.: those where $s = 0$) is larger than the
-    size of the quorum system. This means that at least one
-    replica is present in both read quorums, and as such
-    property \textbf{I2} cannot hold. We denote the size read quorums
-    of the set of smallest read quorums as $R_Q(s = 0)$
+    To prove the intersection of any two read quorums, it
+    suffices to show that
+    Equation~\ref{eq:charaterization_theorem} is equivalent to $2
+    R_Q > N$, even when $s = 0$. This in turn is equivalent to
+    stating that the dimension of \emph{any} two read quorums
+    from the set of the smallest read quorums possible for a
+    quorum system (i.e.: those where $s = 0$) is larger than the
+    size of the quorum system. This implies that at least one
+    replica is present in both read quorums, and as such property
+    \textbf{I2} cannot hold. We denote the size of the smallest
+    read quorums as $R_Q(s = 0)$.
     \begin{align*}
         2 R_Q (s = 0) &> N  \\
         \equ 2F + 2\min(0, M_R) + 2\Delta_N + 2\Delta_R &> M_R + F + \Delta_W + \Delta_N  \\
@@ -587,14 +583,12 @@ replication.
 
 \paragraph{Comparison with existing asymmetric quorum schemes.}
 
-\bsd{TODO: Visigoth?}.
-
 Previous proposals for asymmetric quorum schemes differ
 significantly from \ac{RR} quorum systems.  The idea of
 asymmetric quorums dates back to one of the initial proposals for
 quorum systems by Gifford~\cite{weighted_voting}, where a
 replicated object has a certain number of votes and in order to
-read the value, $M_R$ votes must be gathered, whilst $w$ votes
+read the value, $r$ votes must be gathered, whilst $w$ votes
 are required to write the value. The equivalent to the
 intersection property \textbf{I1} is guaranteed by ensuring that
 $r + w$ exceeds the total number of votes of the object. This use
@@ -630,8 +624,8 @@ protocols, showing that the adaptation is straightforward.
 
 When adapting existing protocols to the \ac{RR} model, it is
 convenient to start from a crash fault tolerant protocol.
-Due to the \new{correctness of execution of nodes in the \ac{RR}
-model}, nodes observe mostly crash fault behavior; the only
+Due to the correctness of execution of nodes in the \ac{RR}
+model, nodes observe mostly crash fault behavior; the only
 additional fault behavior is that their externally stored state
 may be stale after a restart.
 
@@ -643,7 +637,8 @@ consists of following the quorum sizes defined in
 Section~\ref{ssec:parameters}. Similarly, reconfiguration is a
 key aspect of practical replication protocols. Quorum sizes for
 these reconfiguration protocols also need to be adapted
-accordingly.
+accordingly\new{, either to be a write quorum or a super quorum,
+depending on whether the update needs to be atomic}.
 
 Each node must be augmented to maintain a suspicion flag. When a node
 restarts, it set the suspicion flag to true. At this point, the node
@@ -665,18 +660,19 @@ replicas may maintain a Merkle tree, which allows for determining
 which parts of the state need to be fetched without transmitting
 a large amount of information. Note that this subprotocol can run
 lazily and in the background, while the replica continues
-satisfying requests. Doing so might allow for clearing the
+satisfying requests\rr{replying to them only in case the state is
+guaranteed fresh}\bsd{no, always replies, but sets the suspicion
+flag}. Doing so might allow for clearing the
 suspicion flag in case of an update where the new state does not
 depend on the previous version.
 
-\new{
 If the quorum system is \emph{fully intersecting}, these changes
 are enough. Otherwise, mechanisms that ensure the correctness of
 reads from possibly disjoint read quorums need to be put in
 place. These mechanisms will be generally protocol specific.
 
-\bsd{point forward about preemptive and cautious approaches?}
-}
+\bsd{point forward about preemptive and cautious
+approaches?}\rr{huh?}
 
 Next, we will present two example protocols that follow these
 principles and illustrate some of the above challenges.
@@ -698,11 +694,11 @@ faults, and having good performance due to a simple message
 pattern that is linear in the number of
 replicas~\cite{gryff:nsdi20}.
 %
-Figure~\ref{fig:abd-read} shows the pseudocode for the read operation
-while the write logic is shown in Figure~\ref{fig:abd-write}. Since
-the code follows closely the original ABD protocol, our
-explanation highlights where we adapted the protocol to the
-new fault model.
+Figure~\ref{fig:abd-read} shows the pseudocode for the read
+operation, while the write logic is shown in
+Figure~\ref{fig:abd-write}. Since the code follows closely the
+original ABD protocol, our explanation highlights where we
+adapted the protocol to the new fault model.
 
 \paragraph{Timestamp Structure.}
 Each data item stored is associated with a
@@ -724,9 +720,9 @@ that sequence number is incremented by the client, appended with the
 client id, and the resulting timestamp is sent with the value to be
 written. Upon receiving this second round message, replicas overwrite
 values if the received timestamp is greater than the one associated
-with the data they store. \new{This clears any suspicion that
+with the data they store. This clears the suspicion that may have
 existed of the value of the register, as the written value is
-guaranteed to be fresh.}
+guaranteed to be fresh.
 
 
 \paragraph{Read.} Following the ABD protocol, reads occur in one
@@ -734,15 +730,15 @@ round in the common case, with a second round being required if a
 value needs to be written back. In particular, in the original ABD
 protocol, the first round queries replicas for their data and
 timestamp, waits for replies from a majority (which equates to both a
-read and write quorum) and the return value corresponds to the reply
+read and a write quorum) and the return value corresponds to the reply
 with the highest timestamp. However, when there is no majority that
 holds that timestamp value, the second phase is required, writing this
 timestamp and data to a majority. (This is needed to conclude a write
 operation that executes concurrently or was left unfinished.)
 
 Translating the notion of a majority to read and write quorums in the
-\ac{RR} model presents a subtle challenge \new{in the context of
-partially intersecting quorum systems}. Even though
+\ac{RR} model presents a subtle challenge in the context of
+partially intersecting quorum systems. Even though
 intuitively the initial read round only requires a read quorum (and in
 fact this is sufficient to determine the read reply), the optimization
 of skipping the second round is only applicable if there is unanimity
@@ -751,7 +747,7 @@ not necessarily intersect (property \textbf{I2}), which implies that
 contacting only a read quorum would allow for a ``split brain''
 situation, where clients read different values depending on which
 quorum they contact, thus breaking linearizability. The problem with
-waiting for a larger quorum, however, is that in scenarios
+waiting instead for a super quorum, however, is that in scenarios
 where inter-node latency has a wide variance such as geo-replication,
 this introduces an additional latency that erodes the performance
 advantage of the smaller quorums.
@@ -785,7 +781,7 @@ read quorums include at least one replica that will report either
 this or a newer value, given that a write quorum intersects all
 read quorums (\textbf{I1}). Therefore, in the first phase of the
 read operation, if the most recent value in a read quorum is
-marked stable, even if it is read from a single replica, it can
+marked stable, even if it is read from a single quorum replica, it can
 be immediately returned, since the stable flag indicates that it
 has been written to a write quorum and will therefore be seen by
 any subsequent read quorum, thus obeying linearizable semantics.
@@ -794,12 +790,12 @@ The stabilization phase can
 occur at any point after the write concludes. Considering an eager
 approach, the stabilization would occur right after the value has been
 written. We follow a lazier option, triggering the stabilization only
-after the first read (thus avoiding stabilizing a value which is never
+after the first read (thus avoiding stabilizing a value that is never
 read).
 
-\new{This mechanism can be altogether skipped if the quorum
+This mechanism can be altogether skipped if the quorum
 system is fully intersecting, as the intersection of read quorums
-guarantees that the value present in any read quorum is correct.}
+guarantees that the value present in any read quorum is correct.
 
 \paragraph{Proof sketch.}
 We prove the correctness of the resulting protocol in the
@@ -909,9 +905,9 @@ replicas. If the replies are unanimous, the client can return the
 value.
 
 Applying this optimization requires careful reasoning to avoid
-violating the linearizable semantics of the protocol\new{,
+violating the linearizable semantics of the protocol,
 particularly in the context of partially intersecting quorum
-systems}. To understand why, consider the possibility of two
+systems. To understand why, consider the possibility of two
 successive read operations, $r_1, r_2$, where $r_1$ ends before
 $r_2$ begins, and that use quorums $Q_{R1}$ and $Q_{R2}$
 (respectively) and execute concurrently with a write $w$ that
@@ -934,9 +930,9 @@ it has sent an $\textsc{accept}$ message for a slot
 higher than the last executed operation (as it indicates the
 possibility of another read quorum with a different value). If no
 replicas in a read quorum have done this, then no other operation
-has concluded (\textbf{I1}). \new{As was the case in the register
+has concluded (\textbf{I1}). As was the case in the register
 protocol adaptation, this mechanism can be skipped in the case of
-fully intersecting quorum systems.}
+fully intersecting quorum systems.
 
 \paragraph{Proof sketch.}
 Just as in the \ac{ABD} protocol, we sketch the proof based on
@@ -968,7 +964,7 @@ accepts.
 
 
 \subsection{Security Properties}\label{ssec:sec_prop}
-\bsd{Consider moving to chapter 4}
+\bsd{Consider moving to chapter 4}\rr{maybe, discuss}
 If the threat model for \acp{TEE} explained in
 Section~\ref{ssec:tee_motivation} holds, the protocols described in this
 section achieve freshness, integrity and confidentiality.
@@ -1032,8 +1028,65 @@ protocol, which all replicas would remotely attest. We chose
 not to do this, since this approach has wider applicability
 (e.g.:\ it allows clients that do not run in \ac{TEE}-enabled
 platforms to interact with a \ac{TEE} replicated system).
+\rr{need to explain better}
 
-\subsection{Evaluation}\label{sec:eval}
+
+\subsection{Experimental Setup.}
+We ran our experiments using 7 machines  with
+Intel$^\text{\textregistered}$ Xeon$^\text{\textregistered}$ E-2174G
+processors running Debian Linux version 4.19 to run the replicas,
+plus a machines equipped with an Intel$^\text{\textregistered}$
+Xeon$^\text{\textregistered}$ Platinum 8260M processor running Debian
+Linux version 5.4 to execute the clients.
+%
+All machines were connected to same local network. To emulate
+different deployment scenarios, we developed
+\texttt{sloth}\cite{sloth}, which internally uses
+\texttt{netem}\cite{netem} to implement a network topology from a
+high-level JSON description. We considered two deployment
+scenarios in these experiments: a local area network where all
+machines are connected by links whose latency follows a normal
+distribution with mean $1$ms and standard deviation of $\sigma =
+0.5$ms (which we will refer to as the $1$ms topology); the
+deployment scenarios of Figure~\ref{fig:deployments}; and a
+geo-replication scenario, based on the measured the link
+properties (latency and bandwidth) between several AWS
+EC2~\cite{ec2} instances (t2.medium or t3.medium types), located
+in regions spread across the globe (AWS topology). This setup
+ensures flexibility and experimental reproducability.
+
+In our result graphs, each data point represents the median
+measurement over $3,000$ requests (except throughput numbers as
+described belows) and the error bars show the $5^{\text{th}}$ and
+$95^{\text{th}}$ percentiles.
+
+\subsection{Code changes}\label{ssec:implementation_effort}
+
+Changing a \ac{CFT} implementation to reflect the protocol changes
+required by the \ac{RR} model requires low programming
+overhead. Mainly, this consists of handling the restart
+flag, the existence of different quorums and the mechanisms to
+prevent split brain (e.g.\ the stabilization in the register
+protocol). For the read/write register prototype, we
+modified $72$ LoC and added $211$ new ones. For the SMR
+prototype, we modified $24$ LoC and added $28$. \rr{clarify as
+per reviews}
+
+\begin{figure}[t]
+    \centering
+    \begin{minipage}[t]{.49\linewidth}
+        \includegraphics[width=\linewidth]{teem_results/protocol/1ms/parameter/reg_parameter}
+        \caption{Read-write register}\label{fig:1ms_reg_lat_conf}
+    \end{minipage}
+    \begin{minipage}[t]{.49\linewidth}
+        \includegraphics[width=\linewidth]{teem_results/protocol/1ms/parameter/smr_parameter}
+        \caption{State machine}\label{fig:1ms_smr_lat_conf}
+    \end{minipage}
+    \caption{Latency for
+    different configurations and models in the $1$ms topology. \ac{CFT} uses
+    $F=3$ and $RR(M_R, F, s)$ denote \ac{RR} with parameters $M_R$ and
+    $F$, with $s$ restarts.}
+\end{figure}\label{fig:protocol_parameter_lat}
 
 \begin{figure*}[th!]
     \centering
@@ -1072,62 +1125,6 @@ platforms to interact with a \ac{TEE} replicated system).
     \caption{Throughput-Latency curve for different protocols}
 \end{figure*}
 
-\noindent \textbf{Experimental Setup.}
-We ran our experiments using 7 machines  with
-Intel$^\text{\textregistered}$ Xeon$^\text{\textregistered}$ E-2174G
-processors running Debian Linux version 4.19 to run the replicas,
-plus 2 machines equipped with Intel$^\text{\textregistered}$
-Xeon$^\text{\textregistered}$ Platinum 8260M processors running Debian
-Linux version 5.4: one of them to execute the clients and the other to
-host Redis.
-%
-All machines were connected to same local network. To emulate
-different deployment scenarios, we developed
-\texttt{sloth}\cite{sloth}, which internally uses
-\texttt{netem}\cite{netem} to implement a network topology from a
-high-level JSON description. We considered two deployment
-scenarios in these experiments: a local area network where all
-machines are connected by links whose latency follows a normal
-distribution with mean $1$ms and standard deviation of $\sigma =
-0.5$ms (which we will refer to as the $1$ms topology); the
-deployment scenarios of Figure~\ref{fig:deployments}; and a
-geo-replication scenario, based on the measured the link
-properties (latency and bandwidth) between several AWS
-EC2~\cite{ec2} instances (t2.medium or t3.medium types), located
-in regions spread across the globe (AWS topology). This setup
-ensures flexibility and experimental reproducability.
-
-In our result graphs, each data point represents the median
-measurement over $3,000$ requests (except throughput numbers as
-described belows) and the error bars show the $5^{\text{th}}$ and
-$95^{\text{th}}$ percentiles.
-
-\subsection{Code changes}\label{ssec:implementation_effort}
-
-Changing a \ac{CFT} implementation to reflect the protocol changes
-required by the \ac{RR} model requires low programming
-overhead. Mainly, the adaptation needs to handle the restart
-flag, the existence of different quorums and the mechanisms to
-prevent split brain. For the read/write register prototype, we
-modified $72$ LoC and added $211$ new ones. For the SMR
-prototype, we modified $24$ LoC and added $28$.
-
-\begin{figure}[t]
-    \centering
-    \begin{minipage}[t]{.49\linewidth}
-        \includegraphics[width=\linewidth]{teem_results/protocol/1ms/parameter/reg_parameter}
-        \caption{Read-write register}\label{fig:1ms_reg_lat_conf}
-    \end{minipage}
-    \begin{minipage}[t]{.49\linewidth}
-        \includegraphics[width=\linewidth]{teem_results/protocol/1ms/parameter/smr_parameter}
-        \caption{State machine}\label{fig:1ms_smr_lat_conf}
-    \end{minipage}
-    \caption{Latency for
-    different configurations and models in the $1$ms topology. \ac{CFT} uses
-    $F=3$ and $RR(M_R, F, s)$ denote \ac{RR} with parameters $M_R$ and
-    $F$, with $s$ restarts.}
-\end{figure}\label{fig:protocol_parameter_lat}
-
 
 %-------------------------------------------------------------------------------
 \subsection{Protocol performance in different models}\label{ssec:eval_quorum}
@@ -1136,7 +1133,7 @@ prototype, we modified $24$ LoC and added $28$.
 Next, we focus on comparing the performance of both classes of protocols under different
 fault models.
 %
-We compare our adaprted read-write register with the original ABD
+We compare our adapted read-write register with the original ABD
 protocol and the \ac{BFT} read-write register protocol described
 in~\cite{Malkhi:Reiter:BQS:98}. For SMR, we compared our protocol with
 Paxos as described by Kirsch and Amir~\cite{paxos_builders} and the
@@ -1145,23 +1142,20 @@ quorum systems (with $M_R=2$ in the \ac{RR} quorum system),
 yielding quorums with $3$ replicas in the crash and
 \ac{RR} models and $5$ replicas in the Byzantine model. The
 parametrizations are summarized in
-Table~\ref{table:quorum_sizes}.
+Table~\ref{table:quorum_sizes}, along with the resulting quorum
+and system sizes.
 
 \begin{table}[b]
     \centering
     \begin{tabular}{|r || c | c | c || c | c |}
         \hline
-        \textbf{Model}       & N & F & M$_R$ & R$_Q$ & W$_Q$\\ \hline
+        \textbf{Model}       & N & F & $M_R$ & $R_Q(s = 0)$ & $W_Q$\\ \hline
         \textbf{\ac{CFT}}         & 5 & 2 &   &   3   &   3  \\
         \textbf{\ac{RR}} & 5 & 2 & 2 &   3   &   3  \\
         \textbf{\ac{BFT}}         & 7 & 2 &   &   5   &   5  \\ \hline
     \end{tabular}
     \caption{Parameters required by different fault models.}\label{table:quorum_sizes}
 \end{table}
-
-Table~\ref{table:quorum_sizes} summarizes the protocol parameters,
-which were chosen to tolerate the same number of faults across
-systems, and the resulting quorum and system sizes.
 
 The results in Figures~\ref{fig:1ms_reg_lat}-~\ref{fig:aws_smr_lat}
 reflect the differences between the different fault models.  We
@@ -1197,44 +1191,42 @@ reads, respectively. The \ac{BFT} protocol peaks at $20$ and $160$
 Kops/s for updates and optimized reads, respectively. This is due
 to both larger quorums and the extra protocol round of PBFT.
 
-\new{In all cases, the
-throughput becomes bounded by the CPU: the ammount of request
-nodes need to process exceeds the capability of the hardware.
-In the \ac{BFT} protocols, there are both more replicas and
-more rounds, which equates to more messages to be processed and,
-by extension, lower throughput.}
+In all cases, the throughput becomes bounded by the CPU: the
+amount of request that nodes need to process exceeds the
+capability of the hardware. In the \ac{BFT} protocols, there are
+both more replicas and more rounds, which equates to more
+messages to be processed and, by extension, lower
+throughput.\rr{how do you know?}
 
-In the preceding experiments, the crash and
-\ac{RR} protocols used equally sized quorums, and as such
-had very similar performance. However, as
-discussed in Sections~\ref{sec:model} and~\ref{sec:protocol},
-the \ac{RR} model has asymmetric quorums, which lends
-itself to faster reads (at the expense of slower writes).
-Moreover, in the preceding experiments the number of restarts has
-been set to $0$, as this is the common case. To better explore
-the configuration space of \ac{RR} quorums and their
-performance difference to \ac{CFT}, we reran the latency experiments
-from Figures~\ref{fig:1ms_reg_lat}--\ref{fig:1ms_smr_lat}, but with
+In the preceding experiments, the crash and \ac{RR} protocols
+used equally sized quorums, and as such had very similar
+performance. However, as discussed in Sections~\ref{sec:model}
+and~\ref{sec:protocol}, the \ac{RR} model has asymmetric quorums,
+which lends itself to faster reads (at the expense of slower
+writes). Moreover, in the preceding experiments the number of
+restarts has been set to $0$, as this is the common case. To
+better explore the configuration space of \ac{RR} quorums and
+their performance difference to \ac{CFT}, we reran the latency
+experiments from
+Figures~\ref{fig:1ms_reg_lat}--\ref{fig:1ms_smr_lat}, but with
 different quorum configurations. In
-Figures~\ref{fig:1ms_reg_lat_conf}--\ref{fig:1ms_smr_lat_conf}, we can
-observe that, by leveraging the smaller quorums of \ac{RR}, read
-operations become faster than their equivalents in \ac{CFT}, at the
-expense of more expensive writes. Moreover, as the number of
-restarts increases, the difference to \ac{CFT} shrinks, and
-eventually \ac{CFT} reads outperform \ac{RR}, in
-the uncommon case where most replicas have just restarted and
-have yet to run their recovery protocol. Similarly, as the number
-of restarts increases, write/update operations also become more
+Figures~\ref{fig:1ms_reg_lat_conf}--\ref{fig:1ms_smr_lat_conf},
+we can observe that, by leveraging the smaller quorums of
+\ac{RR}, read operations become faster than their equivalents in
+\ac{CFT}, at the expense of more expensive writes. Moreover, as
+the number of restarts increases, the difference to \ac{CFT}
+shrinks, and eventually \ac{CFT} reads outperform \ac{RR}, in the
+uncommon case where most replicas have just restarted and have
+yet to run their recovery protocol. Similarly, as the number of
+restarts increases, write/update operations also become more
 expensive (as they require read quorums in some steps).
 
 Overall, the results show that \ac{RR} has very close performance
 to \ac{CFT}, while offering rollback protection and better read performance
 in some configurations, in the common case with few restarts.
 Compared to \ac{BFT}, \ac{RR} offers significantly better performance
-due to smaller quorums than \ac{BFT} and, for read-write, the lack of
-digital signatures.
+due to its smaller quorums.
 
-\new{
 \section{Discussion: Generalization of the \ac{RR} model}\label{sec:discussion}
 
 A key insight of the \ac{RR} fault model is that it is possible
@@ -1242,9 +1234,11 @@ to detect, with false positives, when non-crash faulty behaviour
 has ocurred in the system. With this suspicion, plus a deployment
 specific hard limit on the number of nodes that can actually
 exhibit this faulty behaviour at the same time, we have derived
-the \ac{RR} quorum systems and associated protocols, thus
-generalizing the crash fault model. It is interesting to consider
-whether it can itself be further generalized.
+the \ac{RR} quorum systems and associated protocols. The \ac{RR}
+fault model can be considered a generalization of the crash fault
+model (i.e.\ when $M_R = 0$). It is interesting to consider
+whether it can itself be further generalized to faulty behaviour
+other than rollbacks.
 
 From a technical point of view, this is definitely possible.
 Provided that there exists a \emph{suspicion function} that
@@ -1264,6 +1258,6 @@ suspicion function that simply reports the suspicion flag from
 \ac{RR} nodes, we have not been able to craft functions that
 present some usefulness. Although this does not mean, by any
 means, that they do not exist, our experience points to the
-suspicion function being a bad abstraction for capturing
-intermediate fault models between the crash and Byzantine.
-}
+suspicion function \new{not being a particularly good} abstraction for capturing
+intermediate fault models between the crash and Byzantine other
+than the \ac{RR} model.

@@ -19,12 +19,15 @@
     \end{enumerate}
 
   \end{small}
-  \caption{By overlapping (and piggybacking) the optimized read
-    to the state machine to get the policy and the reading of the
-    current timestamp of the register (which is the first step of
-    the write protocol), we can run both operations in parallel,
-    since writing the value to the register only happens after
-    the policy is verified. Note that the read operation can be
-    similarly piggybacked (the value is only returned after the
-    policy check)}\label{fig:teems_fast_mixing}
+    \caption{Protocol for the fast intermixing of the distributed
+    register and \ac{SMR} protocols in \ac{TEEMS}. \bsd{what is
+    explain contents? [rr comment]} By overlapping
+    (and piggybacking) the optimized read to the state machine to
+    get the policy and the reading of the current timestamp of
+    the register (which is the first step of the write protocol),
+    we can run both operations in parallel, since writing the
+    value to the register only happens after the policy is
+    verified. Note that the read operation can be similarly
+    piggybacked (the value is only returned after the policy
+    check)}\label{fig:teems_fast_mixing}
 \end{figure}
