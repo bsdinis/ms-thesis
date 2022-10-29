@@ -1,62 +1,21 @@
 \fancychapter{Leveraging the \ac{RR} model in distributed storage}\label{chap:storage}
 \cleardoublepage{}
 
-% Story 1: bottom-up
-%  1. Batching can improve device throughput
+In this chapter, we will present the \acf{R2-S2}, a replicated
+\ac{KVS} based on LevelDB~\cite{leveldb}, a single node \ac{KVS}
+implemented using  \acp{LSM-tree}~\cite{lsm}. We have developed
+\ac{R2-S2} to showcase the broad applicability of the \ac{RR}
+model by using it in a non-security context.
 
-%  2. Waiting for batches introduces delays: latency suffers
+The motivation for \ac{R2-S2} is presented in
+Section~\ref{sec:r2s2motivation}, followed by its design in
+Section~\ref{sec:r2s2design}. We present guidelines for system
+parametrization in Sections~\ref{sec:r2s2parametrization}.
+Section~\ref{sec:r2s2implementation} describes the implementation
+of the PoC and a preliminary evaluation is presented in
+Section~\ref{sec:r2s2evaluation}.
 
-%  3. We can be eager, reply once the data is in an in-memory
-%  buffer
-
-%  4. This introduces a fault-tolerance problem: if the device
-%  crashes before the buffer is flushed, the data is lost
-
-%  5. In replicated systems, we can protect against data loss by
-%  replying eagerly in some replicas and waiting for data to be
-%  in disk in others. If done strategically, it ensures that
-%  enough replicas have committed and enough replicas replied
-%  fast
-
-%  6. The replicated system needs to tolerate forgetful nodes:
-%  if there is a crash and a node loses its soft state it needs
-%  to be able to signal that it may be offering stale state back.
-
-%  7. This is exactly the model offered by the restart-rollback
-%  model, originally conceived in the context of Trusted
-%  Execution Environments with persistent storage.
-
-%  8. This combination is far from trivial. It requires careful
-%  adaptations to the storage layer to support different modes
-%  of operation and realizing the throughput benefits through
-%  batching. At the protocol level, this asymmetry of operation
-%  between replicas (with some replying eagerly while others
-%  flushing to disk) introduces the challenge of scheduling these
-%  sets. This scheduling is crucial to maximize performance, and offers
-%  a rich design space.
-
-%  9. Our construction also introduces deployment challenges:
-%  the parametrization of the different types of faults the
-%  system can suffer is not obvious. We explain how to reason
-%  about the reliability and availability of the system to, in
-%  conjunction with empirical evidence, derive an adequate
-%  deployment for the system requirements.
-
-%  10. Contributions:
-%      - Application of a recent fault model to achieve batching
-%      throughput benefits without sacrificing safety
-%      - The design of a novel storage layer
-%      - An exploration of flush scheduling and its impact on
-%      throughput and latency
-%      - Evidence based parametrization of the resulting system, informed by the
-%      desired reliability and availability
-%      - PoC implementations and evaluation
-
-% @bsd: problems with the story: I think this misses the whole
-% "arc" of persistence in distributed systems, which I think is
-% an important contribution
-
-% 1, 2, 3 and 4: the whys, whats and hows of batching
+\section{Motivation}\ref{sec:r2s2motivation}
 Batching multiple small write operations to a block-oriented storage device into a
 single large one is a known mechanism to increase its throughput.
 To achieve this batching, one has to wait for an adequate amount
@@ -85,15 +44,15 @@ persisted~\cite{bolosky:paxos}.
 We argue that these two properties --- performance and
 durability --- do not need to be mutually exclusive. Instead, we
 aim to combine both into a system that offers the throughput from
-the solutions which persist in the background with the high
-durability from systems which persist before replying to
+the solutions that persist in the background with the high
+durability from systems that persist before replying to
 requests.
 
 % We present a new replication strategy
 To this end, we present a novel replication strategy based on
 carefully and strategically mixing both approaches, leveraging
 \ac{RR} quorum systems. Instead of issuing the write
-requests blindly to all replicas, as is costumary, we can
+requests simmetrically to all replicas, as is costumary, we can
 strategically signal to certain replicas to synchronize to
 persistent storage before replying while allowing others to
 acknowledge the write eagerly, thus mixing both approaches. This
@@ -105,44 +64,35 @@ synchronizing their soft state to stable storage.
 % 8, 9: challenges
 This approach opens a series of challenges. The storage layer
 requires careful adaptations to support multiple modes of
-operation the replication protocol needs tap into to orchestrate
-the overall system, while offering efficient batching, even on
-non-sequential writes. At the protocol level, the asymmetry of
+operation while offering efficient batching, even on
+non-sequential writes. At the replication level, the asymmetry of
 operation between replicas introduces the problem of \emph{sync
 scheduling}: choosing which replicas synchronize to persistent storage
 and which can reply eagerly. This schedule is paramount to
 extracting the maximum performance of the system, and offers a
 rich design space. Parametrizing a deployment of such a system is
 also not obvious. There is a tradeoff to be explored between the
-total number of replicas, the number of replicas which can be
-allowed to suffer a rollback (and, by extension, the performance
-of the system \bsd{is this immediately clear?}) and the desired
-availability and reliability of the system. We present a
-principled method for this parametrization, where a system
-administrator can tune the number of replicas based on how prone
-to faults they are and the desired availability and durability
-levels.
-
-In this chapter, we will present the \acf{R2-S2}, a replicated
-\ac{KVS} based on LevelDB~\cite{leveldb}, a single node \ac{KVS}
-based on \acp{LSM-tree}~\cite{lsm}, where we have implemented several modes
-of replication to compare between the different approaches. The
-design of the \ac{R2-S2} system is presented in
-Section~\ref{sec:r2s2design} and the guidelines for system
-parametrization discussed in
-Sections~\ref{sec:r2s2parametrization}.
-Section~\ref{sec:r2s2implementation} describes the implementation
-of the PoC and a preliminary evaluation is presented in
-Section~\ref{sec:r2s2evaluation}.
+total number of replicas, the number of replicas that synchronize
+to disk in the background (and, by extension, the performance of
+the system) and the desired availability and reliability of the
+system. We present a principled method for this parametrization,
+where a system administrator can tune the number of replicas
+based on how prone to faults they are and the desired
+availability and durability levels.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{\ac{R2-S2} Design}\label{sec:r2s2design}
+\section{\ac{R2-S2} Design}\label{sec:r2s2asymmetric}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\rr{Devias separar em duas secçoes: uma só de Asymmetric
+Synchronization (com os princípios que se aplicam a qualquer
+system design), e outra com o R2-S2 design com esta instância em
+particular}
 
 This section presents the design of \ac{R2-S2}
 based on the principle of \emph{asymmetric synchronization}. However,
 before discussing our architecture in detail, it is worthwhile to
-present the three approaches that can be used to synchronize
+categorize in a systematic way the three approaches that can be used to synchronize
 replica state to stable storage.
 
 \paragraph{Sync immediately.} When receiving an object to write, a
@@ -166,7 +116,12 @@ and reply immediately. This achieves the best \emph{latency} and
 \emph{throughput}, sacrificing \emph{durability} since replicas
 can suffer a rollback if they crash and restart.
 
-We now present the principles and goals for the design of
+The state of the art seems to hint at
+an impossibility trinity: systems have to pick two between latency,
+throughput, and durability. The design goals of \ac{R2-S2} aim to question this
+impossibility, by showing that there can be interesting
+combinations of these features that, at least, approximate the
+best of the three approaches:
 \ac{R2-S2}:
 \begin{enumerate}
     \item \textbf{Strong Persistence}: data loss should never
@@ -189,7 +144,7 @@ Approach C does meet the performance
 requirement, but does not satisfy \emph{strong persistence}.
 
 In the remainder of this section, we will describe
-\emph{asymmetric synchronization}, the key technique which realizes the
+\emph{asymmetric synchronization}, the key technique that realizes the
 goals prescribed above, and how the architecture needs to
 acommodate this paradigm to achieve the best possible
 performance.
@@ -201,37 +156,129 @@ performance.
 Asymmetric synchronization is the key to extracting performance
 in \ac{R2-S2}. The core idea is to partition the replica set
 into two disjoint subsets: the \emph{volatile set}
-$\mathbbm{R}$, composed of the replicas which eagerly reply to the
+$\mathbbm{R}$, composed of the replicas that eagerly reply to the
 request before synchronizing to persistent storage (and thus can
-suffer a rollback on restart); and the sync set $\mathbb{F}$, the
-replicas which wait until the data is persisted before replying.
+suffer a rollback on restart); and the sync set $\mathbb{F}$,
+comprised by the
+replicas that wait until the data is persisted before replying.
 When issuing a write request, each replica is told in which set
 they belong to, and act accordingly. An important subset of
 $\mathbb{F}$ is its intersection with the write quorum
 $\mathbb{W}_Q$. This subset is comprised by the replicas that are
 critical to the performance of the write operation (in
 particular, its latency) and is referred as the \emph{critical
-sync set} from now on.
+sync set} from now on. \rr{quite subtle why should we care about
+replicas in the synch set but not in the write quorum. If they
+are not in the write quorum then why command them to synch? Is
+this a performance optimization in case other synch replicas are
+slow to reply?}\bsd{it is a safety consideration: we need to
+guarantee that we get a sync reply. a strawman alternative would
+be to only send $M_R$ non-sync requests plus $W_Q - M_R$ sync
+requests; then, we would wait for the write quorum and send
+requests to the other replicas if needed. This would force us to make a timing
+assumption and possibly get high tail latencies}
 
 \paragraph{Achieving strong persistence.} To achieve strong
 persistence, it is sufficient that the critical sync set is
-never null. This implies that there is always at least one
+never null \rr{this is stated in too strong terms: if it is a
+single replica then it can have a permanent fault and this could
+imply data loss. Maybe you can restate it in a way that is
+broader, saying "a small subset of replicas (maybe even a single
+replica, assuming the likelihood of that replica having a
+permanent data loss shortly after the operation is
+small)"}\bsd{our model does not really deal with permanent data
+losses\ldots if the replica in the critical sync set suffers a
+permanent failure, then the number of rollbacks is $M_R + 1$ and
+we can't really do anything, right?}. This implies that there is always at least one
 replica in every write quorum which persisted the value, making
 it recoverable. This is guaranteed by the \ac{RR} quorum
 system, by setting the maximum size of $\mathbbm{R}$ to $M_R$,
 since the volatile replicas are the ones which can suffer the rollback on
 restart.
 
-The key to improving throughput is scheduling. Intuitively, it is
-important to distribute the burden of syncing to disk among the
-replica set, allowing all the replicas to batch eventually.
+\paragraph{Improving performance.}The key to improving throughput
+(compared to approach A) is scheduling. Intuitively, it is
+this will distribute the burden of syncing to disk among the
+replica set, allowing all the replicas to batch eventually. By
+having all replicas reply as soon as possible we also get a
+latency improvement compared to approach B. Regretablly, although
+this approach does yield performance benefits compared to
+approaches A and B, it is impossible to match the performance of
+C\@: this would require removing any synchronizing writes from the
+critical path, making $\mathbb{W}_Q \cap \mathbb{F} =
+\varnothing$, violating strong persistence.
 
-Regretablly, although this approach does yield performance
-benefits compared to approaches A and B, it is impossible to
-match the performance of C\@: this would require removing any
-persistent accesses from the critical path, making $\mathbb{W}_Q
-\cap \mathbb{F} = \varnothing$, violating strong persistence.
+\rr{The last three paragraphs have really poor cohesion. They are
+three separate and seemlingly unrelated ideas, which makes for a
+very difficult read. You should expand and rethink the structure}
 
+\new{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{System Overview}\label{ssec:r2s2overview}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bsd{TODO}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Scheduling}\label{ssec:schedule}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+As we have covered, a good schedule is crucial to realize the
+performance potential of the architecture. A \emph{schedule} is a
+sequence $S$, where $S_i^j$ is the mode of operation (batch and
+reply, batch and wait or sync to log\rr{qual a diferença dos 2
+últimos? Pensava que eram só duas opções? Confuso}) to be applied by replica
+$i$ for the $j^\text{th}$ write operation. The
+schedule is said to be \emph{valid} if the volatile set (i.e,
+the number of batch and reply modes of operation) does not exceed
+$M_R$, for every $S^j$. Thus, any valid schedule guarantees
+strong persistence.\rr{creio que não definiste nunca "strong
+persitency". Acho que aqui deves antes dizer que obedece às
+condições do modelo RR}\bsd{não ficou definida no R2-S2 Design?}
+
+There are several approaches to scheduling. Which is preferable
+is non-obvious beforehand: the schedule will be sensitive to the
+particularities of the replication protocol, the deployment and
+the operation load. In the preliminary evaluation in
+\S~\ref{sec:r2s2evaluation} we present an
+evaluation of some of the scheduling policies described
+here.
+
+At a high level, there are two types of schedules: \emph{static}
+schedules, which can pre-determined ahead of time, and as such
+are independent of the load the system is being subjected to; and
+\emph{dynamic} schedules, which are computed on the fly and as
+such can be \emph{reactive} to the load and current status of the
+system. In this dissertation we will focus on static schedules,
+as they are simpler and sufficient to showcase the gains from the
+\ac{RR} model.
+
+\paragraph{Constant Schedule.} A constant schedule is one where
+all write operations use the same modes of operation for each
+replica. In other words, all $S^j$s are equal. This schedule is,
+at face value, a poor choice, since it prevents the replicas in the
+critical set from ever batching. However, if the replica set is
+very heterogeneous, this might be used to provide a tailored
+approach to the hardware characteristics.
+
+\paragraph{Random Schedule.} A schedule where replicas are
+randomly allocated to the sync and volatile sets (based on the
+sizes they need to have for the schedule to be valid).
+
+\paragraph{Round Robin Schedule.} A schedule where the sync set
+is shifted at each round. For instance, in a system with $N = 5,
+M_R = 2$, replicas $0, 1, 2$ are the sync set at step $j$, and
+at step $j + 1$ replicas $3, 4, 0$ become the sync set, and so
+on.\rr{Talvez valha a pena elaborar aqui, com uma figura que dê
+um exemplo do batch size que consegues obter graças a este
+schedule}\bsd{não percebi bem. contudo, posso fazer uma time
+series dos schedules, e mostrar que no constant schedule há
+replicas que nunca fazem uma batch}
+
+Assuming a good random number generator, both the random and the
+round robin schedules should evenly distribute the load among the
+replicas. However, the random scheduler may offer less
+predictable performance.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Storage Layer}\label{ssec:storage}
@@ -263,6 +310,12 @@ check the version cache, populating it if required, where an
 atomic update is executed on the version to ensure that an old
 version does not override a newer version it is racing with.
 
+\rr{A sucessão seguinte de parágrafos muito curtos é um pouco telegráfica.
+Para além de tentar expandir um pouco, nesta transiçao podes enquadrar o que vem de seguida:
+"With these data structures in place, the design of the various
+different operations -- namely reads, writes that need to be
+synched (batch and wait), and writes that can be synched in the
+background (batch and reply) -- becomes quite simple.}
 Satisfying read requests is trivial: the appropriate cache is
 consulted (depending on whether it is an object or a version
 read), falling back on the \ac{LSM-tree} and the log in the event of a miss.
@@ -281,59 +334,6 @@ time.
     \caption{Diagram of the Storage Layer}\label{fig:storage_layer}
 \end{figure}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Scheduling}\label{ssec:schedule}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-As we have covered, a good schedule is crucial to realize the
-performance potential of the architecture. A \emph{schedule} is a
-sequence $S$, where $S_i^j$ is the mode of operation (batch and
-reply, batch and wait or sync to log) to be applied by replica
-$i$ for the $j^\text{th}$ write operation. The
-schedule is said to be \emph{valid} if the volatile set (i.e.:
-the number of batch and reply modes of operation) does not exceed
-$M_R$, for every $S^j$. Thus, any valid schedule guarantees strong persistency.
-
-There are several approaches to scheduling. Which is preferable
-is non-obvious beforehand: the schedule will be sensitive to the
-particularities of the replication protocol, the deployment and
-the operation load. In the preliminary evaluation in
-\S~\ref{sec:r2s2evaluation} we present an
-evaluation of some of the scheduling policies described
-here.
-
-At a high level, there are two types of schedules: \emph{static}
-schedules, which can pre-determined ahead of time, and as such
-independent of the load the system is being subjected to; and
-\emph{dynamic} schedules, which are computed on the fly and as
-such can be \emph{reactive} to the load and current status of the
-system.
-\bsd{maybe remove: only did static schedules}
-
-
-\paragraph{Constant Schedule.} A constant schedule is one where
-all write operations use the same modes of operation for each
-replica. In other words, all $S^j$s are equal. This schedule is,
-at face value, a poor choice, since it prevents the replicas in the
-critical set from ever batching. However, if the replica set is
-very heterogeneous, this might be used to provide a tailored
-approach to the hardware characteristics.
-
-\paragraph{Random Schedule.} A schedule where replicas are
-randomly allocated to the sync and volatile sets (based on the
-sizes they need to have for the schedule to be valid).
-
-\paragraph{Round Robin Schedule.} A schedule where the sync set
-is shifted at each round. For instance, in a system with $N = 5,
-M_R = 2$, replicas $0, 1, 2$ are the sync set at step $j$, and
-at step $j + 1$ replicas $3, 4, 0$ become the sync set, and so
-on.
-
-Assuming a good random number generator, both the random and the
-round robin schedules should evenly distribute the load among the
-replicas. However, the random scheduler may offer less
-predictable performance.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Parametrizing the System}\label{sec:r2s2parametrization}
@@ -360,6 +360,12 @@ devices and the availability of the replicas in the eager set.
 Let $p_f$ be the probability that a storage device fails
 (irrecoverably).
 
+\rr{Está um pouco telegráfico
+Aqui justifica-se explicar que podes para começar e para
+simplificar assumir que as falhas são independentes em todas as
+réplicas, e daí derivar as fórmulas abaixo com mais calma. Depois
+podes fazer estas considerações num parágrafo ou subsecção
+separada.}
 These metrics will also be deployment sensitive. Let us consider
 that the replicas are geo-replicated. In this scenario, replica
 crashes are not correlated, and as such the probability that an
