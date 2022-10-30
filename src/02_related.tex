@@ -16,7 +16,7 @@ communication between two nodes.
 \paragraph{Crash fault models.} A crash fault is said to have
 ocurred when a node stops replying to requests. This may happen
 for several reasons: power outages, network
-partitions, programming errors which
+partitions, programming errors that
 cause the processes to crash, etc. A crash fault can be
 considered \emph{fail-stop} if other processes can detect that it
 has in fact crashed. However, perfect failure detection in asynchronous
@@ -35,7 +35,7 @@ possible, since it assumes nodes can deviate arbitrarily from the
 prescribed protocol. They may do so maliciously or simply by component
 or programming error. Furthermore, several Byzantine nodes may
 collude to deviate in a coordinated fashion, in an attempt to
-vert the guarantees of the system. Compared to crash fault
+subvert the guarantees of the system. Compared to crash fault
 tolerant protocols, \ac{BFT} protocols are expensive on account of
 mechanisms such as digital signatures~\cite{bqs} or extra protocol
 rounds~\cite{pbft}.
@@ -48,9 +48,13 @@ greater flexibility, at the cost of some complexity.
 UpRight~\cite{upright} is an example of a system which uses such
 a hybrid fault model, concretely a hybrid crash-\ac{BFT} model, where
 the system is able to sustain a different number of crash and
-Byzantine faults. \new{UpRight sustains $u$ crash faults in addition
-to $r$ Byzantine faults.}\bsd{Nuno said I should have explained
-the UpRight model, is this enough?}
+Byzantine faults. In particular, UpRight sustains $u$ crash faults in addition
+to $r$ commission faults, which are a subset of Byzantine faults
+where nodes actively produce an incorrect message (and thus
+excluding the subset of crash faults from the Byzantine failure
+model). This leads to an elegant reasoning about Byzantine fault
+tolerance that separates incorrect from non-incorrect node
+behavior.
 
 Besides protocol changes, different fault models require
 different quorum systems. A \emph{quorum} is defined as the
@@ -62,15 +66,15 @@ larger quorums will generally take longer to gather. These
 quorums not only depend on the fault model, but on the network
 model and synchrony assumptions. As an example,
 Table~\ref{tab:quorum} has the quorum sizes for the crash,
-Byzantine and UpRight models in the asynchronous system.
+Byzantine and UpRight models in the asynchronous model.
 
 \begin{table}[ht]
     \centering
     \caption{Quorum sizes in different fault models. In the crash
     model $f$ is the number of crashed replicas, in the Byzantine
     model $f$ is the number of Byzantine replicas, and in the
-    UpRight model $u$ is the number of crashed replicas and $r$
-    the number of Byzantine replicas.}
+    UpRight model $u$ is the number of crash faults and $r$
+    the number of commission faults tolerated.}
     \begin{tabular}{|l|c|c|c|}
         \hline
         \textbf{Fault Model} & \textbf{Fault Parameter} & \textbf{\# Replicas} & \textbf{Quorum Size} \\
@@ -112,26 +116,22 @@ performance. In contrast, \ac{RR} is a new model (based on a
 different set of assumptions) that naturally leads to dynamic
 quorums.
 
-
-There are some proposals that, although not focusing specifically
-on the problem of persistency, share the goal of improving replication
-protocols through trusted components. These can be broadly divided into
-proposals that run an entire replica inside a trusted
-component~\cite{p2p-sgx,bft-sgx} and those that augment the replica logic with a
-small trusted module~\cite{a2m,trinc}.  However, their technical solutions are
-inherently different from the ones we adopt, because they either
-trust the entire replica or have a trusted computing base that is
-constrained by the hardware (e.g., a trusted monotonic counter).
-In contrast, our work focuses on a setting where the computation is
-trusted but the persistent storage is not.
+Another approach of hybrid quorums has been put forward by
+\ac{VFT}~\cite{visigoth}. In \ac{VFT} not only are crash and
+commission faults separately considered, the synchrony of the
+system is also a parameter of the quorum system. This allows
+\ac{VFT} to be parametrized as either synchronous or asynchronous
+and as either crash or Byzantine, with hybrid combinations.
+Although an interesting contribution, we consider \ac{VFT} to be
+an orthogonal approach.
 
 \section{Replication Protocols}
-Replication is technique wherein multiple copies of a service run
+Replication is a technique wherein multiple copies of a service run
 simultaneously so that the overall system maintains its operation
 even in the presence of faults. There are several protocols for
 replicated services, varying vastly according to the types of
 faults tolerated, performance characteristics and semantics of
-the service. In this section, we will explore two types of
+the service. In this section, we will survey two types of
 services frequently replicated: read-write registers and state
 machines.
 
@@ -145,7 +145,7 @@ model, while the Malkhi and Reiter proposed a Byzantine fault tolerant
 counterpart in~\cite{bqs}.
 
 \paragraph{State Machine Replication.} A deterministic state machine (SM) is a
-mathematical construct which supports the successive application of
+mathematical construct that supports the successive application of
 \emph{operations}, which mutate its internal state. This is a
 powerful programming abstraction, as it can simulate any
 deterministic computation. For that reason, it has been the
@@ -290,6 +290,19 @@ replicated systems, using the system configuration (modified
 using consensus) as the source of truth is a natural mechanism to
 prevent forking attacks.
 
+\paragraph{Replication using \acp{TEE}.}
+There are some proposals that, although not focusing specifically
+on the problem of persistency, share the goal of improving replication
+protocols through trusted components. These can be broadly divided into
+proposals that run an entire replica inside a trusted
+component~\cite{p2p-sgx,bft-sgx} and those that augment the replica logic with a
+small trusted module~\cite{a2m,trinc}.  However, their technical solutions are
+inherently different from the ones we adopt, because they either
+trust the entire replica or have a trusted computing base that is
+constrained by the hardware (e.g., a trusted monotonic counter).
+In contrast, our work focuses on a setting where the computation is
+trusted but the persistent storage is not.
+
 \new{
 \section{Single-node \acfp{KVS}}
 
@@ -299,6 +312,18 @@ it is important to understand the overall design of a single-node
 \ac{KVS}, as well as its tradeoffs.
 
 \subsection{\acfp{LSM-tree}}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{img/lsm_read}
+    \caption{\acf{LSM-tree}. A read request first consults the
+    bloom filters (in this case, the first yields a false
+    positive, the second a true negative and the third a true
+    positive) and subsequently performs a binary search on the
+    fence pointers to find the block to get in each run, finding
+    the target key (shaded) in the third
+    run.}\label{fig:lsm_read}
+\end{figure}
 
 The key data structure for modern \acp{KVS} is the \acf{LSM-tree}.
 Examples of industry-grade \acp{KVS} relying on \acp{LSM-tree} include
@@ -321,31 +346,11 @@ performed on each run to find the object. To optimize IO costs,
 two approaches are employed. First, arrays of fence pointers are
 stored in memory, which allows us to perform the binary searches
 in memory, reducing the IO cost per run to 1. Additionally, a
-Bloom filter~\ref{bloom} can be constructed per run to filter
-upfront which runs need not be checked. Figure~\ref{fig:lsm}
-summarizes the architecture of an \ac{LSM-tree}.
+Bloom filter~\cite{bloom} can be constructed per run to filter
+upfront which runs need not be checked. Figure~\ref{fig:lsm_read}
+summarizes the architecture of an \ac{LSM-tree} responding to a
+read request.
 
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=\linewidth]{img/lsm_read}
-    \caption{\acf{LSM-tree}. A read request first consults the
-    bloom filters (in this case, the first yields a false
-    positive, the second a true negative and the third a true
-    positive) and subsequently performs a binary search on the
-    fence pointers to find the block to get in each run, finding
-    the target key (shaded) in the third run.}
-\end{figure}
-
-There are two classes of designs for \acp{LSM-tree}, levelling
-and tiering \acp{LSM-tree}. In the tiereing approach, each level
-gathers runs from the previous level, sorting them only when it
-reaches capacity and pushing the newly-sorted run to the next
-level. In the levelling approach, a run from the previous level
-is merged as soon as it is received, ensuring the run is always
-sorted. The tiering approach is tailored to write-intensive
-workloads, since it does less work per object, while the
-levelling approach is more read-optimized, as the runs are in a
-sorted state, allowing for more efficient lookups.
 
 \begin{figure}[t]
     \begin{minipage}[t]{0.45\linewidth}
@@ -360,11 +365,25 @@ sorted state, allowing for more efficient lookups.
     \end{minipage}
     \caption{Comparison between a tiered and leveled
     \ac{LSM-tree}. The dashed boxes represent the capacity of the
-    level and contiguous blocks sorted runs. In the tiered
-    \ac{LSM-tree} adding another run to the first level would
+    level and contiguous blocks denote sorted runs. In the tiered
+    \ac{LSM-tree}, adding another run to the first level would
     trigger a sort-merge which would create another run at the
-    second level. In the leveled \ac{LSM-tree}, the each level is already sorted. }
+    second level. In the leveled \ac{LSM-tree}, each level is already sorted. }
 \end{figure}
+
+There are two classes of designs for \acp{LSM-tree}, levelling
+and tiering \acp{LSM-tree}. In the tiereing approach, each level
+gathers runs from the previous level, sorting them only when it
+reaches capacity and pushing the newly-sorted run to the next
+level. In the levelling approach, a run from the previous level
+is merged as soon as it is received, ensuring the run is always
+sorted. The tiering approach is tailored to write-intensive
+workloads, since it does less work per object, while the
+levelling approach is more read-optimized, as the runs are in a
+sorted state, allowing for more efficient lookups.
+Figures~\ref{fig:lsm_tiered} and~\ref{fig:lsm_leveled} show the
+two different approaches.
+
 
 }
 

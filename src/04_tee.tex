@@ -50,7 +50,7 @@ concurrent sharing of data blobs.
 %or a top-level hash~\cite{memoir}, which can only be updated by
 %the \ac{TEE} itself.  Concurrent sharing of persistent state instead
 %requires atomic, concurrent updates of state blobs and their
-%associated metadata (e.g.\ counter).}
+%associated metadata (e.g., counter).}
 
 %Plus, even the research proposals to address these limitations
 %suffer from shortcomings such as requiring specialized hardware
@@ -109,8 +109,7 @@ service only for storage and availability.
 \end{table}
 
 Concurrent sharing of mutable data fundamentally requires a
-read-modify-write operation (i.e.\ \bsd{didn't understant the
-comment}some form of \ac{SMR}). However, state machine operations
+read-modify-write operation (i.e., some form of \ac{SMR}). However, state machine operations
 are more expensive than read/write register operations.
 \ac{TEEMS} minimizes the use of state machine operations in
 situations where writers typically perform multiple updates of a
@@ -273,9 +272,25 @@ We implemented the \ac{TEEMS} prototype in Intel SGX (version 1),
 using C++. The \ac{TEEMS} servers are implemented using a
 single-threaded event loop and 6KLoC (\ac{TEEMS}). Additionally,
 the client library, which interacts with the replicas and with
-the untrusted storage, takes up to 5KLoC (\ac{TEEMS}).
+the untrusted storage, takes up to 5KLoC (\ac{TEEMS}). We used
+Flatbuffers~\cite{flatbuffers} to define our protocol messages
+and their serialization, but implemented the secure transport
+between the replicas using OpenSSL~\cite{openssl}.
 
-\bsd{TODO: expand}
+\new{
+It is important to observe that since in \ac{TEE} replicated
+systems replicas cannot generally trust clients to execute the protocol
+code correctly, our prototypes implement the driver code
+collocated with the replicas. This means that, for instance, a
+register write request is first sent to a \ac{TEEMS} server (typically, one
+collocated with the client) which acts as a proxy and runs the
+two rounds of the protocol. A possible alternative would have been
+to implement a \ac{TEE} library that drives the register
+protocol, which all replicas would remotely attest. We chose
+not to do this, since the former approach has wider applicability
+(e.g., it allows clients that do not run in \ac{TEE}-enabled
+platforms to interact with a \ac{TEE} replicated system).
+}
 
 \section{Evaluation}\label{sec:teems_eval}
 

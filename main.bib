@@ -1047,6 +1047,26 @@ keywords = {output commit, speculative execution, Byzantine fault tolerance, rep
   howpublished = {\url{https://github.com/grpc/grpc}},
 }
 
+@misc{flatbuffers,
+  author = {Google},
+  title = {flatbuffers},
+  year = {2022},
+  publisher = {GitHub},
+  abstract = {FlatBuffers is a cross platform serialization library architected for maximum memory efficiency. It allows you to directly access serialized data without parsing/unpacking it first, while still having great forwards/backwards compatibility.},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/google/flatbuffers}},
+}
+
+@misc{openssl,
+  author = {OpenSSL Project},
+  title = {OpenSSL},
+  year = {2022},
+  publisher = {GitHub},
+  abstract = {OpenSSL is a robust, commercial-grade, full-featured Open Source Toolkit for the Transport Layer Security (TLS) protocol formerly known as the Secure Sockets Layer (SSL) protocol. The protocol implementation is based on a full-strength general purpose cryptographic library, which can also be used stand-alone.},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/openssl/openssl}},
+}
+
 @article{bigtable,
   title={Bigtable: A distributed storage system for structured data},
   author={Chang, Fay and Dean, Jeffrey and Ghemawat, Sanjay and Hsieh, Wilson C and Wallach, Deborah A and Burrows, Mike and Chandra, Tushar and Fikes, Andrew and Gruber, Robert E},
@@ -1106,4 +1126,32 @@ pages = {225--237},
 url = {https://www.usenix.org/conference/fast20/presentation/zhang-teng},
 publisher = {USENIX Association},
 month = feb,
+}
+
+@inproceedings{visigoth,
+author = {Porto, Daniel and Leit\~{a}o, Jo\~{a}o and Li, Cheng and Clement, Allen and Kate, Aniket and Junqueira, Flavio and Rodrigues, Rodrigo},
+title = {Visigoth Fault Tolerance},
+year = {2015},
+isbn = {9781450332385},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/2741948.2741979},
+doi = {10.1145/2741948.2741979},
+abstract = {We present a new technique for designing distributed protocols for building reliable stateful services called Visigoth Fault Tolerance (VFT). VFT introduces the Visigoth model, which makes it possible to calibrate the timing assumptions of a system using a threshold of slow processes or messages, and also to distinguish between non-malicious arbitrary faults and correlated attack scenarios. This enables solutions that leverage the characteristics of data center systems, namely their secure environment and predictable performance, in order to allow replicated systems to be more efficient with respect to the utilization of resources than those designed under asynchrony and Byzantine assumptions, while avoiding the need to make a system synchronous, or to restrict failure modes to silent crashes. We implemented a VFT protocol for a state machine replication library, and ran several benchmarks. Our evaluation shows that VFT has comparable performance to existing schemes and brings significant benefits in terms of the throughput per dollar, i.e., the server cost for sustaining a certain level of request execution.},
+booktitle = {Proceedings of the Tenth European Conference on Computer Systems},
+articleno = {8},
+numpages = {14},
+location = {Bordeaux, France},
+series = {EuroSys '15}
+}
+
+@article{bloom,
+  title={Space/time trade-offs in hash coding with allowable errors},
+  author={Bloom, Burton H},
+  journal={Communications of the ACM},
+  volume={13},
+  number={7},
+  pages={422--426},
+  year={1970},
+  publisher={ACM New York, NY, USA}
 }

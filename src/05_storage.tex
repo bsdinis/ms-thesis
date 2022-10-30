@@ -35,7 +35,7 @@ systems: the throughput of the system is limited by the
 throughput of the storage devices of the replicas. To avoid this
 performance penalty, some replicated systems consider data to be persisted if it is
 present in volatile memory at a sufficiently large subset of replicas~\cite{pbft}
-(i.e.\ persistence through replication). Such an approach is not
+(i.e., persistence through replication). Such an approach is not
 consensual, with other authors insisting that data must be
 present in stable storage to be considered
 persisted~\cite{bolosky:paxos}.
@@ -87,7 +87,7 @@ availability and durability levels.
 \rr{Devias separar em duas secçoes: uma só de Asymmetric
 Synchronization (com os princípios que se aplicam a qualquer
 system design), e outra com o R2-S2 design com esta instância em
-particular}
+particular}\bsd{discuss}
 
 This section presents the design of \ac{R2-S2}
 based on the principle of \emph{asymmetric synchronization}. However,
@@ -111,7 +111,7 @@ very large if the batch takes a long time to be filled due to a
 lack of writes).
 
 \paragraph{Move fast and break things.} In this approach,
-replicas place the object in the batch (i.e.:\ volatile memory)
+replicas place the object in the batch (i.e., volatile memory)
 and reply immediately. This achieves the best \emph{latency} and
 \emph{throughput}, sacrificing \emph{durability} since replicas
 can suffer a rollback if they crash and restart.
@@ -176,7 +176,7 @@ guarantee that we get a sync reply. a strawman alternative would
 be to only send $M_R$ non-sync requests plus $W_Q - M_R$ sync
 requests; then, we would wait for the write quorum and send
 requests to the other replicas if needed. This would force us to make a timing
-assumption and possibly get high tail latencies}
+assumption and possibly get high tail latencies}.
 
 \paragraph{Achieving strong persistence.} To achieve strong
 persistence, it is sufficient that the critical sync set is
@@ -210,13 +210,43 @@ critical path, making $\mathbb{W}_Q \cap \mathbb{F} =
 
 \rr{The last three paragraphs have really poor cohesion. They are
 three separate and seemlingly unrelated ideas, which makes for a
-very difficult read. You should expand and rethink the structure}
+very difficult read. You should expand and rethink the
+structure}\bsd{tried to connect it better, but discuss}
 
 \new{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{System Overview}\label{ssec:r2s2overview}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\bsd{TODO}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{img/r2s2_arch}
+    \caption{Architecture of the \ac{R2-S2}
+    prototype}\label{fig:r2s2arch}
+\end{figure}
+
+The \ac{R2-S2} system is comprised of a client and several
+servers, where the client is implemented as a library that
+implements the replication layer and handles the connection to
+and coordination of the multiple \ac{R2-S2} servers.
+
+Each \ac{R2-S2} server consists of an RPC controller, which
+handles the interface with the client. This controller manages
+the server's local \ac{KVS} (in our case,
+LevelDB~\cite{leveldb}). In our prototype, we chose to implement
+the ABD~\cite{abd} protocol, since its read/write interface
+maches perfectly with the \ac{KVS} interface we are aiming to
+implmenet. One relevant aspect of ABD, and most other replication
+protocols, is the notion of object versions, which are not directly supported by the
+\acp{KVS}. To order concurrent writes to the same object with
+different timestamps, an in memory timestamp cache is required. This
+cache is populated as needed, with synchronization on the values
+to order the writes to ensure that a newer value is not
+overwritten by a previous one.
+
+The overall architecture of the \ac{R2-S2} prototype is
+summarized in Figure~\ref{fig:r2s2arch}.
+
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -298,6 +328,13 @@ log, used to write values that need to be synced immediately, and
 an in-memory batch for values that should be batched. To further speed
 up reads there is an optional in-memory object cache.
 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=.75\linewidth]{img/storage_layer}
+    \caption{Diagram of the Storage Layer}\label{fig:storage_layer}
+\end{figure}
+
+
 There is an additional in-memory cache, which only stores the
 object versions. This is useful because versions are a staple of
 most replication protocols and several of them require reading
@@ -310,29 +347,19 @@ check the version cache, populating it if required, where an
 atomic update is executed on the version to ensure that an old
 version does not override a newer version it is racing with.
 
-\rr{A sucessão seguinte de parágrafos muito curtos é um pouco telegráfica.
-Para além de tentar expandir um pouco, nesta transiçao podes enquadrar o que vem de seguida:
-"With these data structures in place, the design of the various
-different operations -- namely reads, writes that need to be
-synched (batch and wait), and writes that can be synched in the
-background (batch and reply) -- becomes quite simple.}
-Satisfying read requests is trivial: the appropriate cache is
-consulted (depending on whether it is an object or a version
-read), falling back on the \ac{LSM-tree} and the log in the event of a miss.
-
-Handling batched writes is also quite simple: the
-value is placed in the batch and eventually a background thread
-will flush the batch into the \ac{LSM-tree}.
-
-If the object should be immediately synced, it is placed into the
-persistent log, and incorporated into the \ac{LSM-tree} at a later
-time.
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=.75\linewidth]{img/storage_layer}
-    \caption{Diagram of the Storage Layer}\label{fig:storage_layer}
-\end{figure}
+With these data structures in place, the various operations
+requried to implement the \ac{KVS} interface and asymmetric
+syncing become quite simple. Satisfying version reads is simple:
+the timestamp cache is consulted (falling back on the
+\ac{LSM-tree} and log if needed). The workflow of an object read
+is similar: if the object cache exists it is consulted, falling
+back on the \ac{LSM-tree} and the log in the event of a miss.
+Handling batch and reply writes requires placing the value
+in the batch and eventually a background thread will flush the
+batch into the \ac{LSM-tree}. Handling sync and reply writes
+amounts to placing it in the persistent log, with this log being
+compacted into the \ac{LSM-tree} at a later time by a background
+thread.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -366,14 +393,42 @@ simplificar assumir que as falhas são independentes em todas as
 réplicas, e daí derivar as fórmulas abaixo com mais calma. Depois
 podes fazer estas considerações num parágrafo ou subsecção
 separada.}
-These metrics will also be deployment sensitive. Let us consider
-that the replicas are geo-replicated. In this scenario, replica
-crashes are not correlated, and as such the probability that an
-eager set crashes at the same time is $p_c^r$. Now let us imagine
-that all replicas are within a single datacenter. Here if a
-replica crashes it is highly likely that the others also crashed
-(eg: the crash was caused by a power outage), meaning that the
-probability that the eager set crashes is still $p_c$.
+
+\new{
+In order to derive the parametrization of the system, let us
+begin with a simplifying assumption that all failures (both
+crashes and storage device failures) are independent among all
+replicas, an assumption valid for a geo-replicated deployment,
+for instance. Let us first consider reliability. The probability
+that all replicas in the eager set crash (and thus all the
+replicas that only had the data in volatile storage lose that
+data) is $p_c^{M_R}$, since $M_R$ is the size of the eager set.
+To truly lose the data, the remainder of the replicas in the
+write quorum would have had to suffer an irrecoverable fault in
+their storage devices, which happens with probability $p^{W_Q -
+M_R}$. Due to the independence of failures, we can derive the
+probability that data is lost to be $p_c^{M_R} \cdot p_f^{W_Q -
+M_R}$, making the reliability of the system be $1 - p_c^{M_R}
+\cdot p_f^{W_Q - M_R}$. Considering availability, we know that
+the system is available if a read quorum and a write quorum are
+available. Due to the independence of failures, the quorums
+become unavailable with probability $p_c^{R_Q}$ and $p_c^{W_Q}$,
+repectively. As such, the probability that they are both
+available at a given point in time is simply $1 - p_c^{\min(R_Q,
+W_Q)}$.
+
+Now let us imagine that the probability of replicas crashing
+\emph{is} correlated, as is the case in a datacenter deployment.
+Then, the probability of $n$ replicas crashing is the same as the
+probability of a single replica crashing: $p_c$. Considering
+reliability, this means that the probability of the eager set
+losing its volatile state due to a crash \emph{and} the remainder
+of the write quorum suffering an irrecoverable failure is $p_c
+\cdot p_f^{W_Q - M_R}$. Availability is quite simpler to derive,
+as if the probability of quorums of any type being unavailable is
+simply $p_c$, making the availability of the system $1 - p_c$.
+}
+
 
 Table~\ref{tab:parametrization} summarizes the availability and
 reliability of the system in these two scenarios.
@@ -402,25 +457,14 @@ underlying storage layer and our own replication layer on top of
 it. This was extremely helpful since LevelDB already implements
 the \ac{LSM-tree}, the persistent log and the optional object cache
 out of the box, and provides for two out of the three modes of
-operation: batch and reply and sync and reply. For the
-replication layer, we chose to implement the \ac{ABD} distributed
-register protocol, since it matches perfectly with the \ac{KVS}
-interface.
+operation: batch and reply and sync and reply.
 
 The replication layer was implemented in Rust with the request transport
 being handled by gRPC~\cite{grpc}. The \ac{R2-S2} client library
 provides a shim that interacts with the replication layer that
 coordinates the \ac{ABD} operations. The \ac{R2-S2} server
 receives requests via gRPC and manages the timestamp cache and
-its embedded LevelDB instance. Figure~\ref{fig:r2s2arch}
-summarizes the architecture of the prototype.
-
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=\linewidth]{img/r2s2_arch}
-    \caption{Architecture of the \ac{R2-S2}
-    prototype}\label{fig:r2s2arch}
-\end{figure}
+its embedded LevelDB instance.
 
 The client library was implemented in approximately 2KLoC of
 Rust. The server was implemented in 400LoC. The gRPC protocol

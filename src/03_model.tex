@@ -157,7 +157,7 @@ value store, there are three possible approaches:
     \item[C.] The node places the object in a batch, and
         immediately issues the reply. This offers the best
         throughput and latency, but can lead to \emph{data loss}
-        if the replica crashes (i.e.: if it suffers a rollback);
+        if the replica crashes (i.e., if it suffers a rollback);
 \end{enumerate}
 
 \ac{RR} opens the possibility of a hybrid approach, where some
@@ -266,7 +266,7 @@ we replace a failed node with a new one that starts from the
 initial state of the system (or fetches a recent but possibly not
 the most recent one).
 %
-Finally, we define a liveness bound $F$, i.e. the system is live
+Finally, we define a liveness bound $F$, i.e.\ the system is live
 provided that no more than $F$ replicas are temporarily unreachable at
 any given moment, due to network partitions, power outages, or reboot.
 
@@ -529,7 +529,7 @@ fully intersecting based on its parametrization:
     R_Q > N$, even when $s = 0$. This in turn is equivalent to
     stating that the dimension of \emph{any} two read quorums
     from the set of the smallest read quorums possible for a
-    quorum system (i.e.: those where $s = 0$) is larger than the
+    quorum system (i.e., those where $s = 0$) is larger than the
     size of the quorum system. This implies that at least one
     replica is present in both read quorums, and as such property
     \textbf{I2} cannot hold. We denote the size of the smallest
@@ -1002,7 +1002,7 @@ We implemented both the read/write register and SMR protocols in
 the three fault models (crash, \ac{RR}, and Byzantine) in Intel
 SGX (version 1), using C++. All prototypes were implemented using
 the same codebase, limiting the changes between prototypes to
-what was required by the protocols (e.g.\ extra protocol steps,
+what was required by the protocols (e.g., extra protocol steps,
 different quorums). The PBFT~\cite{pbft} implementation uses the
 standard optimization of using MACs instead of digital
 signatures.
@@ -1015,19 +1015,6 @@ using a single-threaded event loop, and take between 4.5KLoC for
 the distributed register and 4KLoC for \ac{SMR}. Additionally, the client libraries, which
 interact with the replicas take up 5KLoC (distributed
 register) and 4KLoC (\ac{SMR}).
-
-It is important to observe that, since in the \ac{TEE} use case,
-replicas cannot generally trust clients to execute the protocol
-code correctly, our prototypes implement the driver code
-collocated with the replicas. This is only relevant in the
-distributed register case, since there is no client-side protocol
-to be executed in Paxos. A possible alternative would have been
-to implement a \ac{TEE} library that drives the register
-protocol, which all replicas would remotely attest. We chose
-not to do this, since this approach has wider applicability
-(e.g.:\ it allows clients that do not run in \ac{TEE}-enabled
-platforms to interact with a \ac{TEE} replicated system).
-\rr{need to explain better}
 
 
 \subsection{Experimental Setup.}
@@ -1065,11 +1052,12 @@ Changing a \ac{CFT} implementation to reflect the protocol changes
 required by the \ac{RR} model requires low programming
 overhead. Mainly, this consists of handling the restart
 flag, the existence of different quorums and the mechanisms to
-prevent split brain (e.g.\ the stabilization in the register
-protocol). For the read/write register prototype, we
-modified $72$ LoC and added $211$ new ones. For the SMR
-prototype, we modified $24$ LoC and added $28$. \rr{clarify as
-per reviews}
+prevent split brain (e.g., the stabilization in the register
+protocol). For the read/write register prototype, to
+implement the \ac{RR} protocol we modified $72$ LoC and added
+$211$ new ones to the \ac{CFT} implementation. For the \ac{RR} SMR
+prototype, we modified $24$ LoC and added $28$ to the \ac{CFT}
+prototype.
 
 \begin{figure}[t]
     \centering
@@ -1195,7 +1183,9 @@ amount of request that nodes need to process exceeds the
 capability of the hardware. In the \ac{BFT} protocols, there are
 both more replicas and more rounds, which equates to more
 messages to be processed and, by extension, lower
-throughput.\rr{how do you know?}
+throughput.\rr{how do you know?}\bsd{this is what we said in the
+rebuttal, it is the explanation which made sense, but we did not
+run a particular experiment to test this.}
 
 In the preceding experiments, the crash and \ac{RR} protocols
 used equally sized quorums, and as such had very similar
@@ -1235,7 +1225,7 @@ specific hard limit on the number of nodes that can actually
 exhibit this faulty behaviour at the same time, we have derived
 the \ac{RR} quorum systems and associated protocols. The \ac{RR}
 fault model can be considered a generalization of the crash fault
-model (i.e.\ when $M_R = 0$). It is interesting to consider
+model (i.e., when $M_R = 0$). It is interesting to consider
 whether it can itself be further generalized to faulty behaviour
 other than rollbacks.
 
