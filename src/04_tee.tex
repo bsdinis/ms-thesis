@@ -42,25 +42,18 @@ of the metadata, the service extends the same guarantees to the
 encrypted and versioned data blobs. Moreover, by supporting an
 atomic update operation on metadata, the service enables
 concurrent sharing of data blobs.
-%\update{Fundamentally, even assuming an efficient way for
-%storing the state of a single \ac{TEE}, this solution would still be
-%unable to support concurrent sharing between multiple \acp{TEE}. This
-%is because ensuring freshness of a single \ac{TEE}'s own state relies
-%on persistently storing a monotonic counter~\cite{ariadne,rote,ice}
-%or a top-level hash~\cite{memoir}, which can only be updated by
-%the \ac{TEE} itself.  Concurrent sharing of persistent state instead
-%requires atomic, concurrent updates of state blobs and their
-%associated metadata (e.g., counter).}
 
-%Plus, even the research proposals to address these limitations
-%suffer from shortcomings such as requiring specialized hardware
-%or an uninterruptible power supply~\cite{ice,memoir}, the
-%inability to tolerate system-wide power failure~\cite{rote},
-%\pd{Given that multiple reviewers have dismissed our previous
-%point by pointing to the ubiquity of UPSs, I wonder if we should
-%focus on the following argument (lack of support for concurrent
-%sharing). We already call it out as ``more fundamental'', so why
-%not start with it and downplay the others?}
+\new{This approach needs to be integrated at the replication
+level. Fundamentally, even assuming an efficient way for
+storing the state of a single \ac{TEE}, this solution would still be
+unable to support concurrent sharing between multiple \acp{TEE}. This
+is because ensuring freshness of a single \ac{TEE}'s own state relies
+on persistently storing a monotonic counter~\cite{ariadne,rote,ice}
+or a top-level hash~\cite{memoir}, which can only be updated by
+the \ac{TEE} itself.  Concurrent sharing of persistent state instead
+requires atomic, concurrent updates of state blobs and their
+associated metadata (e.g., counter).
+}
 
 We designed and implemented a replicated metadata service called
 \ac{TEEMS} (for \ac{TEE}-based Metadata Service) based on the
@@ -109,20 +102,20 @@ service only for storage and availability.
 \end{table}
 
 Concurrent sharing of mutable data fundamentally requires a
-read-modify-write operation (i.e., some form of \ac{SMR}). However, state machine operations
-are more expensive than read/write register operations.
-\ac{TEEMS} minimizes the use of state machine operations in
-situations where writers typically perform multiple updates of a
-data blob before other writers perform an update as follows.  We
-mediate access to the metadata via single writer policies, and
-implement policy changes via the more expensive read-modify-write
-state machine operation. Simply reading and updating the metadata
-of a blob (by the current writer) is implemented using efficient
-distributed register operations.  This approach ensures safe
-concurrent sharing of data blobs while minimizing the more
-expensive policy changes to cases when the writer for a blob
-changes. The full \ac{TEEMS} interface is summarized in
-Table~\ref{tab:teems}.
+read-modify-write operation (i.e., some form of \ac{SMR}).
+However, state machine operations are more expensive than
+read/write register operations. \ac{TEEMS} minimizes the use of
+state machine operations in situations where writers typically
+perform multiple updates of a data blob before other writers
+perform an update as follows.  We mediate access to the metadata
+via single writer policies, and implement policy changes via the
+more expensive read-modify-write state machine operation. Simply
+reading and updating the metadata of a blob (by the current
+writer) is implemented using efficient distributed register
+operations.  This approach ensures safe concurrent sharing of
+data blobs while minimizing the more expensive policy changes to
+cases when the writer for a blob changes. The full \ac{TEEMS}
+interface is summarized in Table~\ref{tab:teems}.
 
 Storage operations involve the following sequence of steps.  When an
 operation to write a new data blob $d$ associated with id $i$ is
@@ -153,12 +146,6 @@ d'\rangle_{k_i}$ is read and then decrypted using $k_i$,
 obtaining $d'$ and $MAC(d')$. Finally, its integrity  is
 validated by comparing $MAC(d')$ and $MAC(d_i)$.
 
-While \ac{TEEMS} ensures the confidentiality, integrity, and
-freshness of stored data blobs, the untrusted storage us relied
-upon for availability of data blobs. For increased availability,
-clients may store multiple copies of a data blob (or
-erasure-coded fragments) at independent storage providers.
-%
 Finally, the access to the untrusted storage can be optimized by
 employing caching at the client. We can either cache full blobs (to
 avoid having to access the untrusted store) or name hints (for
@@ -192,6 +179,7 @@ visible to register operations.
 
 \input{protocols/teems-slow.tex}
 \input{protocols/teems-fast.tex}
+\bsd{TODO: time diagram}
 
 For reads and writes, a slow but trivially correct combination of
 the protocols would be to issue a read operation on the state
@@ -229,6 +217,18 @@ rely on a \ac{TEEMS} replica as a proxy or on a client-operated \ac{TEE},
 attested by the replicas. In our description, as well as in our
 prototype implementation, we chose the former.
 
+\new{
+\subsection{Security Properties}
+
+\ac{TEEMS} ensures the confidentiality, integrity, and
+freshness of stored data blobs, due to the correctness of the
+underlying protocols, as discussed in
+Section~\ref{ssec:model_sec_prop}. However, the untrusted storage is relied
+upon for availability of data blobs. For increased availability,
+clients may store multiple copies of a data blob (or
+erasure-coded fragments) at independent storage providers.
+}
+%
 \subsection{Deployment scenarios}
 
 \begin{figure}[t] \centering

@@ -659,9 +659,7 @@ replicas may maintain a Merkle tree, which allows for determining
 which parts of the state need to be fetched without transmitting
 a large amount of information. Note that this subprotocol can run
 lazily and in the background, while the replica continues
-satisfying requests\rr{replying to them only in case the state is
-guaranteed fresh}\bsd{no, always replies, but sets the suspicion
-flag}. Doing so might allow for clearing the
+satisfying requests. Doing so might allow for clearing the
 suspicion flag in case of an update where the new state does not
 depend on the previous version.
 
@@ -670,8 +668,6 @@ are enough. Otherwise, mechanisms that ensure the correctness of
 reads from possibly disjoint read quorums need to be put in
 place. These mechanisms will be generally protocol specific.
 
-\bsd{point forward about preemptive and cautious
-approaches?}\rr{huh?}
 
 Next, we will present two example protocols that follow these
 principles and illustrate some of the above challenges.
@@ -763,6 +759,8 @@ advantage of the smaller quorums.
 
 \input{protocols/abd-read.tex}
 \input{protocols/abd-write.tex}
+
+\bsd{TODO: time diagram}
 \paragraph{Stabilization.}
 To address this issue, we introduce an extra asynchronous phase,
 called the \emph{stabilization} phase. This phase takes
@@ -962,8 +960,8 @@ more recent state, since its execution requires a write quorum of
 accepts.
 
 
-\subsection{Security Properties}\label{ssec:sec_prop}
-\bsd{Consider moving to chapter 4}\rr{maybe, discuss}
+\subsection{Security Properties of \ac{TEE}
+replication}\label{ssec:model_sec_prop}
 If the threat model for \acp{TEE} explained in
 Section~\ref{ssec:tee_motivation} holds, the protocols described in this
 section achieve freshness, integrity and confidentiality.
@@ -1178,14 +1176,12 @@ reads, respectively. The \ac{BFT} protocol peaks at $20$ and $160$
 Kops/s for updates and optimized reads, respectively. This is due
 to both larger quorums and the extra protocol round of PBFT.
 
-In all cases, the throughput becomes bounded by the CPU: the
-amount of request that nodes need to process exceeds the
-capability of the hardware. In the \ac{BFT} protocols, there are
-both more replicas and more rounds, which equates to more
-messages to be processed and, by extension, lower
-throughput.\rr{how do you know?}\bsd{this is what we said in the
-rebuttal, it is the explanation which made sense, but we did not
-run a particular experiment to test this.}
+In all cases, the throughput becomes bounded by the resources of
+the nodes: the amount of request that nodes need to process
+exceeds the capability of the hardware. In the \ac{BFT}
+protocols, there are both more replicas and more rounds, which
+equates to more messages to be processed and, by extension, lower
+throughput.
 
 In the preceding experiments, the crash and \ac{RR} protocols
 used equally sized quorums, and as such had very similar

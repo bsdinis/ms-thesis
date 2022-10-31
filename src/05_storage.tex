@@ -15,7 +15,7 @@ Section~\ref{sec:r2s2implementation} describes the implementation
 of the PoC and a preliminary evaluation is presented in
 Section~\ref{sec:r2s2evaluation}.
 
-\section{Motivation}\ref{sec:r2s2motivation}
+\section{Motivation}\label{sec:r2s2motivation}
 Batching multiple small write operations to a block-oriented storage device into a
 single large one is a known mechanism to increase its throughput.
 To achieve this batching, one has to wait for an adequate amount
@@ -81,13 +81,8 @@ based on how prone to faults they are and the desired
 availability and durability levels.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{\ac{R2-S2} Design}\label{sec:r2s2asymmetric}
+\section{\ac{R2-S2} Design}\label{sec:r2s2design}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\rr{Devias separar em duas secçoes: uma só de Asymmetric
-Synchronization (com os princípios que se aplicam a qualquer
-system design), e outra com o R2-S2 design com esta instância em
-particular}\bsd{discuss}
 
 This section presents the design of \ac{R2-S2}
 based on the principle of \emph{asymmetric synchronization}. However,
@@ -110,7 +105,7 @@ before replying, this approach favours \emph{durability} and
 very large if the batch takes a long time to be filled due to a
 lack of writes).
 
-\paragraph{Move fast and break things.} In this approach,
+\paragraph{Batch and reply (Move fast and break things).} In this approach,
 replicas place the object in the batch (i.e., volatile memory)
 and reply immediately. This achieves the best \emph{latency} and
 \emph{throughput}, sacrificing \emph{durability} since replicas
@@ -167,29 +162,11 @@ $\mathbb{F}$ is its intersection with the write quorum
 $\mathbb{W}_Q$. This subset is comprised by the replicas that are
 critical to the performance of the write operation (in
 particular, its latency) and is referred as the \emph{critical
-sync set} from now on. \rr{quite subtle why should we care about
-replicas in the synch set but not in the write quorum. If they
-are not in the write quorum then why command them to synch? Is
-this a performance optimization in case other synch replicas are
-slow to reply?}\bsd{it is a safety consideration: we need to
-guarantee that we get a sync reply. a strawman alternative would
-be to only send $M_R$ non-sync requests plus $W_Q - M_R$ sync
-requests; then, we would wait for the write quorum and send
-requests to the other replicas if needed. This would force us to make a timing
-assumption and possibly get high tail latencies}.
+sync set} from now on.
 
 \paragraph{Achieving strong persistence.} To achieve strong
 persistence, it is sufficient that the critical sync set is
-never null \rr{this is stated in too strong terms: if it is a
-single replica then it can have a permanent fault and this could
-imply data loss. Maybe you can restate it in a way that is
-broader, saying "a small subset of replicas (maybe even a single
-replica, assuming the likelihood of that replica having a
-permanent data loss shortly after the operation is
-small)"}\bsd{our model does not really deal with permanent data
-losses\ldots if the replica in the critical sync set suffers a
-permanent failure, then the number of rollbacks is $M_R + 1$ and
-we can't really do anything, right?}. This implies that there is always at least one
+never null. This implies that there is always at least one
 replica in every write quorum which persisted the value, making
 it recoverable. This is guaranteed by the \ac{RR} quorum
 system, by setting the maximum size of $\mathbbm{R}$ to $M_R$,
@@ -256,15 +233,12 @@ summarized in Figure~\ref{fig:r2s2arch}.
 As we have covered, a good schedule is crucial to realize the
 performance potential of the architecture. A \emph{schedule} is a
 sequence $S$, where $S_i^j$ is the mode of operation (batch and
-reply, batch and wait or sync to log\rr{qual a diferença dos 2
-últimos? Pensava que eram só duas opções? Confuso}) to be applied by replica
+reply, batch and wait or sync to log) to be applied by replica
 $i$ for the $j^\text{th}$ write operation. The
 schedule is said to be \emph{valid} if the volatile set (i.e,
 the number of batch and reply modes of operation) does not exceed
 $M_R$, for every $S^j$. Thus, any valid schedule guarantees
-strong persistence.\rr{creio que não definiste nunca "strong
-persitency". Acho que aqui deves antes dizer que obedece às
-condições do modelo RR}\bsd{não ficou definida no R2-S2 Design?}
+strong persistence.
 
 There are several approaches to scheduling. Which is preferable
 is non-obvious beforehand: the schedule will be sensitive to the
@@ -299,11 +273,9 @@ sizes they need to have for the schedule to be valid).
 is shifted at each round. For instance, in a system with $N = 5,
 M_R = 2$, replicas $0, 1, 2$ are the sync set at step $j$, and
 at step $j + 1$ replicas $3, 4, 0$ become the sync set, and so
-on.\rr{Talvez valha a pena elaborar aqui, com uma figura que dê
-um exemplo do batch size que consegues obter graças a este
-schedule}\bsd{não percebi bem. contudo, posso fazer uma time
-series dos schedules, e mostrar que no constant schedule há
-replicas que nunca fazem uma batch}
+on.
+
+\bsd{TODO: figures with schedule time diagrams}
 
 Assuming a good random number generator, both the random and the
 round robin schedules should evenly distribute the load among the
@@ -381,18 +353,12 @@ the individual replicas. Let $p_c$ be the symmetric of the
 availability of a replica, ie: the probability that a replica is
 \emph{crashed} at a particular point in time.
 
-The reliability (probability that the system loses data) of the
+The reliability (probability that the system loses data over a
+given period of time) of the
 system is dependent on the reliability of the underlying storage
 devices and the availability of the replicas in the eager set.
 Let $p_f$ be the probability that a storage device fails
-(irrecoverably).
-
-\rr{Está um pouco telegráfico
-Aqui justifica-se explicar que podes para começar e para
-simplificar assumir que as falhas são independentes em todas as
-réplicas, e daí derivar as fórmulas abaixo com mais calma. Depois
-podes fazer estas considerações num parágrafo ou subsecção
-separada.}
+(irrecoverably) in that period of time.
 
 \new{
 In order to derive the parametrization of the system, let us
