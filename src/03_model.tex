@@ -691,7 +691,15 @@ Figure~\ref{fig:abd-read} shows the pseudocode for the read
 operation, while the write logic is shown in
 Figure~\ref{fig:abd-write}. Since the code follows closely the
 original ABD protocol, our explanation highlights where we
-adapted the protocol to the new fault model.
+adapted the protocol to the new fault model. We also provide time
+diagrams of the operations in Figures~\ref{fig:abd-read-time} and
+~\ref{fig:abd-write-time}.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{img/abd_write}
+    \caption{Time diagram of the register write operation.}\label{fig:abd-write-time}
+\end{figure}
 
 \paragraph{Timestamp Structure.}
 Each data item stored is associated with a
@@ -705,6 +713,18 @@ sequence number.
 %boolean flag, associated with the timestamp, indicating whether
 %the vallue is stable or not.
 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{img/abd_read}
+    \caption{Time diagram of the register read operation. If the value is
+    stable, the read can return at point $A$. If the the write
+    quorum gathered in the first phase is unanimous, the read can
+    return at point $B$. In this case, for clarity, the
+    stabilization is omitted in the figure. Else, the most recent
+    value is written back to a write quorum, and then the read
+    operation returns at point $C$, issuing an asynchronous
+    stabilization phase.}\label{fig:abd-read-time}
+\end{figure}
 \paragraph{Write.}  This operation is similar to the ABD
 protocol, but uses the \ac{RR} quorum system. In the first round
 a read quorum is gathered to discover the most recent sequence number
@@ -758,7 +778,6 @@ advantage of the smaller quorums.
 \input{protocols/abd-read.tex}
 \input{protocols/abd-write.tex}
 
-\bsd{TODO: time diagram}
 \paragraph{Stabilization.}
 To address this issue, we introduce an extra asynchronous phase,
 called the \emph{stabilization} phase. This phase takes
@@ -897,7 +916,17 @@ this optimization, the client contacts a read quorum with an
 \textsc{optimized-read} message, asking for the
 result of executing the read-only command against current state of the
 replicas. If the replies are unanimous, the client can return the
-value.
+value. Figure~\ref{fig:paxos-read} showcases the workflow of a
+read-only operation.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{img/paxos_read}
+    \caption{Time diagram of the \ac{SMR} read-opnly operation. If the
+    optimized read is successful, the operation returns at point
+    $A$. Otherwise, it falls back to a regular \ac{SMR}
+    operation, returning at point $B$.}\label{fig:paxos-read}
+\end{figure}
 
 Applying this optimization requires careful reasoning to avoid
 violating the linearizable semantics of the protocol,

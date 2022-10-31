@@ -215,6 +215,16 @@ the ABD~\cite{abd} protocol, since its read/write interface
 maches perfectly with the \ac{KVS} interface we are aiming to
 implement.
 
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[width=0.75\linewidth]{img/schedules}
+    \caption{Examples of valid static schedules for a
+    parameterization of 5 nodes with $M_R = 2$. In each
+    schedule a line represents a replica and the temporal sequence of
+    objects it writes (boxes). A shaded box represents an object
+    that was synchronized immediately, while a white box
+    represents a batched object.}\label{fig:schedules}
+\end{figure}
 One relevant aspect of \ac{ABD}, and most other replication
 protocols, is the notion of object versions, which are not directly supported by the
 \ac{KVS} interface. Although we store the versions with the
@@ -251,6 +261,7 @@ the operation load. In the preliminary evaluation in
 evaluation of some of the scheduling policies described
 here.
 
+
 At a high level, there are two types of schedules: \emph{static}
 schedules, which can predetermined ahead of time, and as such
 are independent of the load the system is being subjected to; and
@@ -262,11 +273,7 @@ as they are simpler and sufficient to showcase the gains from the
 
 \paragraph{Constant Schedule.} A constant schedule is one where
 all write operations use the same modes of operation for each
-replica. In other words, all $S^j$s are equal. This schedule is,
-at face value, a poor choice, since it prevents the replicas in the
-critical set from ever batching. However, if the replica set is
-very heterogeneous, this might be used to provide a tailored
-approach to the hardware characteristics.
+replica. In other words, all $S^j$s are equal.
 
 \paragraph{Random Schedule.} A schedule where replicas are
 randomly allocated to the sync and volatile sets (based on the
@@ -278,12 +285,8 @@ M_R = 2$, replicas $0, 1, 2$ are the sync set at step $j$, and
 at step $j + 1$ replicas $3, 4, 0$ become the sync set, and so
 on.
 
-\bsd{TODO: figures with schedule time diagrams}
-
-Assuming a good random number generator, both the random and the
-round robin schedules should evenly distribute the load among the
-replicas. However, the random scheduler may offer less
-predictable performance.
+Figure~\ref{fig:schedules} shows examples of different static
+schedules.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Storage Layer}\label{ssec:storage}
