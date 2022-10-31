@@ -5,4 +5,38 @@
 % use \noindent in firts paragraph
 % reset acronyms
 \acresetall
-\noindent TODO
+\noindent Ambientes de Execução Confiável (em inglês, TEEs)
+garantem a confidencialidade e integridade de computações ao
+nível do \textit{hardware}. Sobre o modelo adversarial dos TEEs, o
+\textit{hardware} protege a computação da maioria das falhas
+induzidas externamente, excepto falhas de \textit{crash}, em que
+um TEE simplesmente vai abaixo (e.g., quando falta a
+eletricidade). Contudo, TEEs, não possuem métodos eficientes de
+garantir a frescura do seu estado persistente, que pode ser
+revertido para uma versão anterior. Nesta dissertação, propomos o
+modelo de faltas \ac{RR} para replicação de TEEs, que captura
+exatamente os comportamentos de falta de TEEs com estado externo,
+evitando a utilização de protocolos BFT, que incorrem num custo
+superior. Mostramos que protocolos CFT existentes podem ser
+adaptados facilmente para este modelo de faltas com poucas
+alterações, mantendo a sua performance original.
+\vskip -0cm
+Para ilustrar a utilidade da replicação de TEEs segundo o
+modelo RR, construímos um serviço de metadados replicado chamado
+TEEMS, que pode ser usado para acrescentar confidencialidade,
+integridade e frescura a armazenamento em cloud ao nível das
+proteções dos TEEs. Seguidamente, exemplificamos a generalidade
+do modelo RR, aplicando-o ao contexto de KVSs replicadas. KVSs
+replicadas atuais escolhem entre latência, \textit{throughput} e
+durabilidade, dependendo se sincronizam as escritas antes de
+responderem aos pedidos (o que oferece uma \textit{performance}
+fraca) ou se combinam várias escritas numa \textit{batch} em
+memória (possivelmente perdendo dados se os nós forem abaixo
+antes da escrita ser sincronizada). Observamos que o último
+caso effetivamente corresponde a uma reversão de estado, que é
+capturada pelo modelo RR.
+\vskip 0cm
+Impelmentámos os vários protocolos e sistemas, e a nossa
+avaliação demonstra que a \textit{performance} é comparável à de
+sistemas CFT mas com garantias mais fortes e significativamente
+superior à de sistemas BFT.

@@ -10,7 +10,7 @@ model by using it in a non-security context.
 The motivation for \ac{R2-S2} is presented in
 Section~\ref{sec:r2s2motivation}, followed by its design in
 Section~\ref{sec:r2s2design}. We present guidelines for system
-parametrization in Sections~\ref{sec:r2s2parametrization}.
+parameterization in Sections~\ref{sec:r2s2parameterization}.
 Section~\ref{sec:r2s2implementation} describes the implementation
 of the PoC and a preliminary evaluation is presented in
 Section~\ref{sec:r2s2evaluation}.
@@ -52,14 +52,17 @@ requests.
 To this end, we present a novel replication strategy based on
 carefully and strategically mixing both approaches, leveraging
 \ac{RR} quorum systems. Instead of issuing the write
-requests simmetrically to all replicas, as is costumary, we can
+requests symmetrically to all replicas, as is customary, we can
 strategically signal to certain replicas to synchronize to
 persistent storage before replying while allowing others to
 acknowledge the write eagerly, thus mixing both approaches. This
 key insight allows us to take advantage of batching, improving the overall
 performance of the system, without relinquishing fault tolerance.
-The \ac{RR} fault model is needed in case replicas crash before
-synchronizing their soft state to stable storage.
+The \ac{RR} fault model captures perfectly replicas that
+crash before synchronizing their volatile batches to stable
+storage. In this case, these replicas suffer a rollback, but
+since they have restarted can flag their suspicion regarding the
+freshness of their state.
 
 % 8, 9: challenges
 This approach opens a series of challenges. The storage layer
@@ -70,12 +73,12 @@ operation between replicas introduces the problem of \emph{sync
 scheduling}: choosing which replicas synchronize to persistent storage
 and which can reply eagerly. This schedule is paramount to
 extracting the maximum performance of the system, and offers a
-rich design space. Parametrizing a deployment of such a system is
+rich design space. Parameterizing a deployment of such a system is
 also not obvious. There is a tradeoff to be explored between the
 total number of replicas, the number of replicas that synchronize
 to disk in the background (and, by extension, the performance of
 the system) and the desired availability and reliability of the
-system. We present a principled method for this parametrization,
+system. We present a principled method for this parameterization,
 where a system administrator can tune the number of replicas
 based on how prone to faults they are and the desired
 availability and durability levels.
@@ -120,7 +123,7 @@ best of the three approaches:
 \ac{R2-S2}:
 \begin{enumerate}
     \item \textbf{Strong Persistence}: data loss should never
-        ocurr, even in the presence of arbitrary node crashes;
+        occurr, even in the presence of arbitrary node crashes;
 
     \item \textbf{Performance}: the architecture should yield
         performance gains compared to
@@ -141,7 +144,7 @@ requirement, but does not satisfy \emph{strong persistence}.
 In the remainder of this section, we will describe
 \emph{asymmetric synchronization}, the key technique that realizes the
 goals prescribed above, and how the architecture needs to
-acommodate this paradigm to achieve the best possible
+accomodate this paradigm to achieve the best possible
 performance.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -157,7 +160,7 @@ suffer a rollback on restart); and the sync set $\mathbb{F}$,
 comprised by the
 replicas that wait until the data is persisted before replying.
 When issuing a write request, each replica is told in which set
-they belong to, and act accordingly. An important subset of
+they belong to, and acts accordingly. An important subset of
 $\mathbb{F}$ is its intersection with the write quorum
 $\mathbb{W}_Q$. This subset is comprised by the replicas that are
 critical to the performance of the write operation (in
@@ -185,12 +188,6 @@ C\@: this would require removing any synchronizing writes from the
 critical path, making $\mathbb{W}_Q \cap \mathbb{F} =
 \varnothing$, violating strong persistence.
 
-\rr{The last three paragraphs have really poor cohesion. They are
-three separate and seemlingly unrelated ideas, which makes for a
-very difficult read. You should expand and rethink the
-structure}\bsd{tried to connect it better, but discuss}
-
-\new{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{System Overview}\label{ssec:r2s2overview}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -205,7 +202,10 @@ structure}\bsd{tried to connect it better, but discuss}
 The \ac{R2-S2} system is comprised of a client and several
 servers, where the client is implemented as a library that
 implements the replication layer and handles the connection to
-and coordination of the multiple \ac{R2-S2} servers.
+and coordination of the multiple \ac{R2-S2} servers. This
+replication layer also decides and coordinates the replicas to
+implement the \emph{schedule} (which replicas have to synchronize
+the write before replying).
 
 Each \ac{R2-S2} server consists of an RPC controller, which
 handles the interface with the client. This controller manages
@@ -213,18 +213,21 @@ the server's local \ac{KVS} (in our case,
 LevelDB~\cite{leveldb}). In our prototype, we chose to implement
 the ABD~\cite{abd} protocol, since its read/write interface
 maches perfectly with the \ac{KVS} interface we are aiming to
-implmenet. One relevant aspect of ABD, and most other replication
+implement.
+
+One relevant aspect of \ac{ABD}, and most other replication
 protocols, is the notion of object versions, which are not directly supported by the
-\acp{KVS}. To order concurrent writes to the same object with
+\ac{KVS} interface. Although we store the versions with the
+objects for persistence, in order to order concurrent writes to the same object with
 different timestamps, an in memory timestamp cache is required. This
 cache is populated as needed, with synchronization on the values
 to order the writes to ensure that a newer value is not
-overwritten by a previous one.
+overwritten by a previous one. Additionally, this cache enables
+faster queries of the object's version, which is the first phase
+of an \ac{ABD} write.
 
 The overall architecture of the \ac{R2-S2} prototype is
 summarized in Figure~\ref{fig:r2s2arch}.
-
-}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Scheduling}\label{ssec:schedule}
@@ -233,7 +236,7 @@ summarized in Figure~\ref{fig:r2s2arch}.
 As we have covered, a good schedule is crucial to realize the
 performance potential of the architecture. A \emph{schedule} is a
 sequence $S$, where $S_i^j$ is the mode of operation (batch and
-reply, batch and wait or sync to log) to be applied by replica
+reply, batch and wait or sync immediately) to be applied by replica
 $i$ for the $j^\text{th}$ write operation. The
 schedule is said to be \emph{valid} if the volatile set (i.e,
 the number of batch and reply modes of operation) does not exceed
@@ -249,7 +252,7 @@ evaluation of some of the scheduling policies described
 here.
 
 At a high level, there are two types of schedules: \emph{static}
-schedules, which can pre-determined ahead of time, and as such
+schedules, which can predetermined ahead of time, and as such
 are independent of the load the system is being subjected to; and
 \emph{dynamic} schedules, which are computed on the fly and as
 such can be \emph{reactive} to the load and current status of the
@@ -328,17 +331,17 @@ is similar: if the object cache exists it is consulted, falling
 back on the \ac{LSM-tree} and the log in the event of a miss.
 Handling batch and reply writes requires placing the value
 in the batch and eventually a background thread will flush the
-batch into the \ac{LSM-tree}. Handling sync and reply writes
+batch into the \ac{LSM-tree}. Handling sync immediately writes
 amounts to placing it in the persistent log, with this log being
 compacted into the \ac{LSM-tree} at a later time by a background
 thread.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Parametrizing the System}\label{sec:r2s2parametrization}
+\section{Parameterizing the System}\label{sec:r2s2parameterization}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-To parametrize our system, we effectively need to choose
+To parameterize our system, we effectively need to choose
 appropriate values for $M_R$ and $F$. We employ a data-driven
 approach to this problem. Relying on real-world information about
 the availability and reliability of components, we can predict
@@ -360,8 +363,11 @@ devices and the availability of the replicas in the eager set.
 Let $p_f$ be the probability that a storage device fails
 (irrecoverably) in that period of time.
 
-\new{
-In order to derive the parametrization of the system, let us
+\emph{Note that generally, the probability of a replica crashing
+is higher than that of the replica's underlying storage failing.
+As such, in this discussion we assume that $p_c > p_f$.}
+
+In order to derive the parameterization of the system, let us
 begin with a simplifying assumption that all failures (both
 crashes and storage device failures) are independent among all
 replicas, an assumption valid for a geo-replicated deployment,
@@ -379,13 +385,15 @@ M_R}$, making the reliability of the system be $1 - p_c^{M_R}
 the system is available if a read quorum and a write quorum are
 available. Due to the independence of failures, the quorums
 become unavailable with probability $p_c^{R_Q}$ and $p_c^{W_Q}$,
-repectively. As such, the probability that they are both
+respectively. As such, the probability that they are both
 available at a given point in time is simply $1 - p_c^{\min(R_Q,
 W_Q)}$.
 
 Now let us imagine that the probability of replicas crashing
 \emph{is} correlated, as is the case in a datacenter deployment.
-Then, the probability of $n$ replicas crashing is the same as the
+Under this assumption, an event like a power outage will cause
+all replicas to crash and lose their volatile state. Therefore,
+the probability of $n$ replicas crashing is the same as the
 probability of a single replica crashing: $p_c$. Considering
 reliability, this means that the probability of the eager set
 losing its volatile state due to a crash \emph{and} the remainder
@@ -393,25 +401,53 @@ of the write quorum suffering an irrecoverable failure is $p_c
 \cdot p_f^{W_Q - M_R}$. Availability is quite simpler to derive,
 as if the probability of quorums of any type being unavailable is
 simply $p_c$, making the availability of the system $1 - p_c$.
-}
 
-
-Table~\ref{tab:parametrization} summarizes the availability and
+Table~\ref{tab:parameterization} summarizes the availability and
 reliability of the system in these two scenarios.
 
 \begin{table}[ht]
     \centering
     \caption{Availability and reliability in a geo-replicated
-    deployment versus a datacenter deployment. $R_Q$ and $W_Q$
-    are the sizes of the quorums for a parametrization with $M_R$
-    tolerated rollbacks and $F$ crash faults}\label{tab:parametrization}
+    deployment (uncorrelated failures) versus a datacenter
+    deployment (correlated failures). $R_Q$ and $W_Q$
+    are the sizes of the quorums for a parameterization with $M_R$
+    tolerated rollbacks and $F$ crash faults}\label{tab:parameterization}
     \begin{tabular}{|r||c|c|}
         \hline
         & \textbf{Geo-replicated} & \textbf{Datacenter} \\ \hline
         \textbf{Availability} & $1 - p_c^{\min(R_Q, W_Q)}$ & $1 - p_c$ \\ \hline
         \textbf{Reliability}  & $1 - p_c^{M_R} \cdot p_f^{W_Q - M_R}$ & $1 - p_c \cdot p_f^{W_Q - M_R}$ \\ \hline
-    \end{tabular}\label{tab:parametrization}
+    \end{tabular}\label{tab:parameterization}
 \end{table}
+
+It is worthwhile to compare the durability guarantees of
+\ac{R2-S2} with the \ac{CFT} baselines where all replicas either sync
+before replying (i.e., \emph{batch and wait} and
+\emph{sync immediatelly}) or \emph{batch and reply}.
+
+In the former case, since when replies are issued the updates are
+persisted on all replicas, the reliability is independent of the
+existence of crash faults (and, consequently, of the deployment
+scenario). The probability of data being lost is therefore
+$p_f^{Q}$, where $Q$ is the size of a quorum, making the
+reliability $1 - p_f^{Q}$, which is significantly higher than
+that provided by \ac{R2-S2} in either deployment scenario. This equates to this baseline
+requiring less replicas to achieve the same level of reliability.
+
+In the latter case, in which all replicas use the batch and wait
+approach, the reliability can be derived from the probability of
+a quorum crashing, since it is not guaranteed that the quorum
+persisted the value before replying. Therefore, the
+probability of data loss \emph{is} deployment sensitive. In the
+geo-replicated scenario, the probability of a quorum crashing is
+$p_c^Q$, whereas in the datacenter scenario (where crash faults
+are correlated) this probability is simply $p_c$, resulting in
+a reliability of $1 - p_c^Q$ and $1 - p_c$, respectively. As
+expected, these values are lower than those offered by
+\ac{R2-S2}. Moreover, in the datacenter scenario the reliability
+is \emph{independent} of the number of replicas, since they are
+likely to crash simultaneously.
+
 
 
 
@@ -441,11 +477,11 @@ underlying storage layer and our own replication layer on top of
 it. This was extremely helpful since LevelDB already implements
 the \ac{LSM-tree}, the persistent log and the optional object cache
 out of the box, and provides for two out of the three modes of
-operation: \emph{batch and reply} and \emph{sync and reply}.
-\new{We intend to implement the \emph{batch and wait} mode of
+operation: \emph{batch and reply} and \emph{sync immediately}.
+We intend to implement the \emph{batch and wait} mode of
 operation and incorporate it in our prototype. However, this
 requires changing LevelDB to track the batches each object is
-placed in and when those batches are eventually persisted.}
+placed in and when those batches are eventually persisted.
 
 The replication layer was implemented in Rust with the request transport
 being handled by gRPC~\cite{grpc}. The \ac{R2-S2} client library
@@ -468,20 +504,22 @@ for benchmarks consists of 2KLoC of Rust.
     \includegraphics[width=.75\linewidth]{r2s2_results/abd_small/tput.pdf}
     \caption{Maximum throughput for different configurations.
     The \emph{batch and reply} configuration places the
-    object in a batch and replies immediately, while in the \emph{sync and reply} configuration all replicas
+    object in a batch and replies immediately, while in the
+    \emph{sync immediately} configuration all replicas
     flush the object to the persistent log before replying. In
     the $T(BR, 5)$, $BR$ replicas in each write use the former
     approach, while the remaining use the
     latter.}\label{fig:r2s2_asym}
 \end{figure}
 \paragraph{Experimental Setup.}
-We ran our experiments using 5 machines  with
-Intel$^\text{\textregistered}$ Xeon$^\text{\textregistered}$ E-2174G
-processors running Debian Linux version 4.19 with \bsd{TODO:
-insert specification of the HDD} to run the replicas,
-plus one machine equipped with a Intel$^\text{\textregistered}$
-Xeon$^\text{\textregistered}$ Platinum 8260M processor running Debian
-Linux version 5.4 to execute the client driver of the benchmarks.
+We ran our experiments using 5 machines, each with an
+Intel$^\text{\textregistered}$ Xeon$^\text{\textregistered}$
+E-2174G processor and a 300GB Seagate Magnetic disk model
+ST300MM0006, running Debian Linux version 4.19 to run the
+replicas, plus one machine equipped with a
+Intel$^\text{\textregistered}$ Xeon$^\text{\textregistered}$
+Platinum 8260M processor running Debian Linux version 5.4 to
+execute the client driver of the benchmarks.
 
 \paragraph{Experimental Methodology.} In our result graphs, each data point represents the average
 measurement throughput measurement over $60$ seconds of running
@@ -498,28 +536,42 @@ Synchronization}\label{ssec:r2s2_eval_asym}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 In this experiment, we compare two baselines in the classical
-\ac{CFT} model, \emph{sync and
-reply} and \emph{batch and reply}, with a set of \emph{threshold
+\ac{CFT} model, \emph{sync immediately} and \emph{batch and reply}, with a set of \emph{threshold
 configurations} ($T(BR, N)$), which vary the number of replicas that use the
 batch and reply synchronization mode. Effectively, $T(0, N)$ is
-the \ac{CFT} sync and reply configuration and $T(N, N)$ is the
-\ac{CFT} batch and reply configuration.
+the \ac{CFT} sync immediately configuration, which corresponds to
+the classic system where each replica persists before replying.
+Moreover $T(N, N)$ is the \ac{CFT} batch and reply configuration,
+which only offers guarantees of the \emph{persistence through
+replication} group, since the client obtains a reply to the write
+operation before data is guaranteed to be persisted in any of the
+replicas. Configurations $T(1, 5)$ and $T(2, 5)$ offer the same
+persistence guarantees of $T(0, 5)$, while $T(3, 5)$ and $T(4,
+5)$ offer a more subtle compromise. In these configurations there are enough replicas in the \emph{batch and reply} mode
+to form a write quorum. This means that in the
+event of a full system shutdown, if the other replicas that are in
+fact persisting the write have not yet processed the request (or
+the message was lost) the data will be lost. Nevertheless, these
+(probabilistic) durability guarantees are still qualitatively
+better than those of the \emph{batch and reply} baseline.
 
 We measured the maximum throughput of each configuration using a
 randomized schedule and $128KB$ objects. As we can observe in
 Figure~\ref{fig:r2s2_asym}, the more replicas are
-allowed to batch the higher the average throughput.
+allowed to batch the higher the average throughput. We also note
+the sharp increase in throughput the $T(3, 5)$ and $T(4, 5)$
+configurations. This is for precisely the same reason as their
+poorer durability guarantees: the \emph{batch and reply} replicas
+are enough to form a write quorum, making the throughput of the
+overall system significantly better.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Scheduling}\label{ssec:r2s2_eval_scheduling}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\bsd{THE INTERPRETATION IS IS TOTALLY WRONG}
-
 Next, we compare the same two baselines in the
-\ac{CFT} model, \emph{sync and
-reply} and \emph{batch and reply} with three \ac{RR} based quorum
+\ac{CFT} model, \emph{sync immediately} and \emph{batch and reply} with three \ac{RR} based quorum
 configuration which aim to combine the durability of the former and
 performance of the latter. Each of the \ac{RR} configurations
 uses a different static schedule, as described in
@@ -534,7 +586,8 @@ baselines and the total number of replicas.
     \includegraphics[width=.75\linewidth]{r2s2_results/rr_small/tput.pdf}
     \caption{Maximum throughput for different schedules.
     The \emph{batch and reply} configuration places the
-    object in a batch and replies immediately, while in the \emph{sync and reply} configuration all replicas
+    object in a batch and replies immediately, while in the
+    \emph{sync immediately} configuration all replicas
     flush the object to the persistent log before replying. The
     constant schedule always synchronizes to the same $3$ of the
     $5$ replicas. The randomized schedule also synchronizes to
@@ -544,16 +597,11 @@ baselines and the total number of replicas.
 \end{figure}
 
 We measured the maximum throughput of each configuration using  $128KB$ objects.
-As we can observe in Figure~\ref{fig:r2s2_sched}, both the random
-and the round robin schedules achieve a middle ground between the
-performance of the \emph{sync and reply} and \emph{batch and
-reply} configurations, while still achieving strong persistence.
-The constant schedule shows comparable performance to the
-\emph{sync and reply}. This is because the performance of a
-quorum operation is limited by the slowest replica in the quorum.
-Since having a replica in the quorum that synchronizes before replying is a
-pre-requisite to strong persistence and in the constant schedule
-the replicas that synchronize never get to batch, the load is
-unevely distributed. This causes the throughput to be severly
-limited.
-
+As we can observe in Figure~\ref{fig:r2s2_sched}, all \ac{RR}
+configurations achieve throughput gains of up to $33\%$ when compared to the
+\emph{sync immediately} baseline, while still achieving strong
+persistence. However, there is still a large gap to the
+\emph{batch and reply} baseline. Even though part of this gap is fundamentally attributed to the
+lower durability guarantees offered by the \emph{batch and reply}
+configuration, we also intend to bridge this implementation gap and
+improve these results.

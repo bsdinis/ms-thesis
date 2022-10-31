@@ -5,7 +5,7 @@
 
 \begin{document}
 
-\ifnum 1>0
+\ifnum 0>0
 \newcommand{\pd}[1]{\textit{\textcolor{red}{[Peter]: #1}}}
 \newcommand{\bsd}[1]{\textit{\textcolor{red}{[Baltasar]: #1}}}
 \newcommand{\rr}[1]{\textit{\textcolor{red}{[Rodrigo]: #1}}}
@@ -49,9 +49,12 @@
 \cleardoublepage{}
 
 \begin{resumo}
+    \vskip -1cm
 	\input{src/00_resumo.tex}
 \end{resumo}
+    \vskip -1cm
 \begin{palavraschave}
+    \vskip -1cm
 	\input{src/00_palavras_chave.tex}
 \end{palavraschave}
 \clearpage
@@ -83,14 +86,14 @@
 \listoftables
 \cleardoublepage{}
 
-\pdfbookmark[1]{List of Algorithms}{loa}
-\listofalgorithms{}
-\endgroup
-\cleardoublepage{}
+%\pdfbookmark[1]{List of Algorithms}{loa}
+%\listofalgorithms{}
+%\endgroup
+%\cleardoublepage{}
 
-\pdfbookmark[1]{Listings}{lol}
-\lstlistoflistings{}
-\cleardoublepage{}
+%\pdfbookmark[1]{Listings}{lol}
+%\lstlistoflistings{}
+%\cleardoublepage{}
 % -----------------------------------------------------------------------------
 % % List of acronyms
 \pdfbookmark[1]{Acronyms}{loac}
@@ -134,7 +137,7 @@
 \ULforem{}
 \cleardoublepage{}
 
-\printglossary[]
+%\printglossary[]
 \mtcaddchapter{}
 
 \cleardoublepage{}
@@ -144,8 +147,8 @@
 \input{app/appendix_a.tex}
 \cleardoublepage{}
 
-\pdfbookmark[1]{Appendix B}{appendix}
-\input{app/appendix_b.tex}
-\cleardoublepage{}
+%\pdfbookmark[1]{Appendix B}{appendix}
+%\input{app/appendix_b.tex}
+%\cleardoublepage{}
 
 \end{document}

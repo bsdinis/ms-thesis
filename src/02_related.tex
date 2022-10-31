@@ -14,7 +14,7 @@ partitions may temporarily impede or arbitrarily slow down the
 communication between two nodes.
 
 \paragraph{Crash fault models.} A crash fault is said to have
-ocurred when a node stops replying to requests. This may happen
+occurred when a node stops replying to requests. This may happen
 for several reasons: power outages, network
 partitions, programming errors that
 cause the processes to crash, etc. A crash fault can be
@@ -43,7 +43,7 @@ rounds~\cite{pbft}.
 \paragraph{Hybrid fault models.}
 Hybrid fault models consider at least two types of faults
 separately. They have the advantage of better adapting the
-system parametrization to the deployment conditions by offering
+system parameterization to the deployment conditions by offering
 greater flexibility, at the cost of some complexity.
 UpRight~\cite{upright} is an example of a system which uses such
 a hybrid fault model, concretely a hybrid crash-\ac{BFT} model, where
@@ -120,7 +120,7 @@ Another approach of hybrid quorums has been put forward by
 \ac{VFT}~\cite{visigoth}. In \ac{VFT} not only are crash and
 commission faults separately considered, the synchrony of the
 system is also a parameter of the quorum system. This allows
-\ac{VFT} to be parametrized as either synchronous or asynchronous
+\ac{VFT} to be parameterized as either synchronous or asynchronous
 and as either crash or Byzantine, with hybrid combinations.
 Although an interesting contribution, we consider \ac{VFT} to be
 an orthogonal approach.
@@ -292,7 +292,7 @@ prevent forking attacks.
 
 \paragraph{Replication using \acp{TEE}.}
 There are some proposals that, although not focusing specifically
-on the problem of persistency, share the goal of improving replication
+on the problem of persistence, share the goal of improving replication
 protocols through trusted components. These can be broadly divided into
 proposals that run an entire replica inside a trusted
 component~\cite{p2p-sgx,bft-sgx} and those that augment the replica logic with a
@@ -303,7 +303,6 @@ constrained by the hardware (e.g., a trusted monotonic counter).
 In contrast, our work focuses on a setting where the computation is
 trusted but the persistent storage is not.
 
-\new{
 \section{Single-node \acfp{KVS}}
 
 One way of implementing replicated \acp{KVS} is to implement a
@@ -384,8 +383,6 @@ sorted state, allowing for more efficient lookups.
 Figures~\ref{fig:lsm_tiered} and~\ref{fig:lsm_leveled} show the
 two different approaches.
 
-
-}
 
 \section{Persistence in replicated distributed systems}
 

@@ -5,7 +5,7 @@ In this chapter, we define the \ac{RR} fault model, which
 captures the behaviour of replicated nodes with persistent state.
 
 We will motivate this fault model from its origins as a fault model
-for replicated \acp{TEE} with persistent state, and subsequentely
+for replicated \acp{TEE} with persistent state, and subsequently
 we will motivate how this fault model can further be applied to
 nodes with persistent storage replicated using the crash fault
 model. Then, we derive requirements for quorum systems in the
@@ -23,7 +23,7 @@ We then provide a performance evaluation in the context of
 \acp{TEE} using micro-benchmarks. We compare the \ac{CFT}
 protocols with their adaptations to the \ac{RR} model and the
 equivalent counterparts in the \ac{BFT} world. This demonstrates
-the viability and usefullness of the \ac{RR} model in the context
+the viability and usefulness of the \ac{RR} model in the context
 of \ac{TEE}-based replication, showcasing how it enables
 protocols with both correctness (otherwise only found in
 \ac{BFT}) and speed (present in \ac{CFT}-based replication).
@@ -137,12 +137,11 @@ In the Section~\ref{sec:model}, we describe a novel fault model that
 captures {\em precisely}\ the set of behaviors exhibited by \acp{TEE} with
 external state: crash failures plus state rollback after a restart.
 
-\new{
 \subsection{Extending the usefulness of fault model}\label{sec:extending_fault_model}
 
 Although the \ac{TEE} use-case requires something like the
 \ac{RR} model out of \emph{necessity}, we also look at \ac{RR} as
-an \emph{oportunity}. The ability to tolerate some rollbacks on
+an \emph{opportunity}. The ability to tolerate some rollbacks on
 restart is useful outside the security sensitive context of
 \acp{TEE}. Consider a replicated \ac{KVS}, where each node
 maintains a local \ac{KVS}. When writing to the local key
@@ -167,7 +166,6 @@ disk (approach A). With careful orchestration, this can in principle allow for
 a throughput advantage compared to approach A, a latency
 advantage compared to approach B and a durability advantage
 compared to approach C, a very interesting tradeoff.
-}
 
 \section{\ac{RR} model definition}\label{sec:model}
 
@@ -177,7 +175,7 @@ and restart at a later instant.  Additionally, nodes can suffer a
 rollback failure upon a restart, after which their externally
 stored, persistent state may be valid but stale.  After each
 restart, nodes flag their state as suspicious when replying to
-requests, signalling that they have restarted and thus may have
+requests, signaling that they have restarted and thus may have
 been subject to a rollback. Nodes can reliably determine when it has executed its
 initialization code and thus restarted. A node stops indicating
 the suspicious flag once it is ascertained that its state is
@@ -478,7 +476,7 @@ Reviewing the quorum properties in the previous paragraph,
 there is one property that stands out: \textbf{I2}. In quorum
 literature, the intersection of quorums is a key property, but
 in \ac{RR}, it naturally arises that, for some
-parametrizations, this is not guaranteed to happen between all
+parameterizations, this is not guaranteed to happen between all
 read quorums. Here, two disjoint read quorums may in general
 reflect different system states~---~a phenomenon usually
 described as {\em split brain}.  This can happen when an
@@ -486,7 +484,7 @@ operation that changes the system state is still in progress (or
 even halted, due to the crash of the initiator). Handling this
 peculiarity will require some protocol support, creating
 mechanisms to ensure that a single value is reported by all read
-quorums. However, in certain parametrizations, property
+quorums. However, in certain parameterizations, property
 \textbf{I2} can be guaranteed never to hold, and thus such
 extraneous protocol infrastructure can be avoided. We classify
 \ac{RR} quorum systems in two categories accordingly:
@@ -506,7 +504,7 @@ extraneous protocol infrastructure can be avoided. We classify
 
 Theorem~\ref{theorem:fully_intersecting} describes how to
 characterize a \ac{RR} quorum system as either partially or
-fully intersecting based on its parametrization:
+fully intersecting based on its parameterization:
 
 \begin{theorem} [Characterization of \ac{RR} Quorum
     Systems]\label{theorem:fully_intersecting}
@@ -543,12 +541,12 @@ fully intersecting based on its parametrization:
 \end{dem}
 
 \begin{corollary}
-    In the parametrization in
+    In the parameterization in
     Equation~\ref{eq:deploymentfinal}, the associated quorum
     system is fully intersecting if and only if $F \geq M_R$
 \end{corollary}
 \begin{dem}
-    The parametrization in question fixes $\Delta_R = 1,
+    The parameterization in question fixes $\Delta_R = 1,
     \Delta_W = 1$ and $\Delta_N = 0$. Substituting in
     Equation~\ref{eq:charaterization_theorem}, we get:
     \begin{align*}
@@ -559,7 +557,7 @@ fully intersecting based on its parametrization:
     \hfill\ensuremath{\Box}\vspace{2em}
 \end{dem}
 
-\paragraph{Reflections on the parametrization of the system.}
+\paragraph{Reflections on the parameterization of the system.}
 \ac{RR} quorums are more complex than regular
 quorum systems. They include two parameters ($M_R$ and $F$) instead of
 one, with an additional runtime value ($s$). Moreover, the quorum
@@ -636,8 +634,8 @@ consists of following the quorum sizes defined in
 Section~\ref{ssec:parameters}. Similarly, reconfiguration is a
 key aspect of practical replication protocols. Quorum sizes for
 these reconfiguration protocols also need to be adapted
-accordingly\new{, either to be a write quorum or a super quorum,
-depending on whether the update needs to be atomic}.
+accordingly, either to be a write quorum or a super quorum,
+depending on whether the update needs to be atomic.
 
 Each node must be augmented to maintain a suspicion flag. When a node
 restarts, it set the suspicion flag to true. At this point, the node
@@ -1124,7 +1122,7 @@ PBFT protocol~\cite{pbft}. We fixed the fault parameter, $F= 2$ across
 quorum systems (with $M_R=2$ in the \ac{RR} quorum system),
 yielding quorums with $3$ replicas in the crash and
 \ac{RR} models and $5$ replicas in the Byzantine model. The
-parametrizations are summarized in
+parameterizations are summarized in
 Table~\ref{table:quorum_sizes}, along with the resulting quorum
 and system sizes.
 
@@ -1214,7 +1212,7 @@ due to its smaller quorums.
 
 A key insight of the \ac{RR} fault model is that it is possible
 to detect, with false positives, when non-crash faulty behaviour
-has ocurred in the system. With this suspicion, plus a deployment
+has occurred in the system. With this suspicion, plus a deployment
 specific hard limit on the number of nodes that can actually
 exhibit this faulty behaviour at the same time, we have derived
 the \ac{RR} quorum systems and associated protocols. The \ac{RR}
@@ -1226,7 +1224,7 @@ other than rollbacks.
 From a technical point of view, this is definitely possible.
 Provided that there exists a \emph{suspicion function} that
 detects, with false positives, when non-crash faulty behaviour
-has ocurred while reading the system, one could reuse the derivation
+has occurred while reading the system, one could reuse the derivation
 of quorum systems presented in this chapter and the associated
 protocols. This would even generalize to the Byzantine model, as a
 trivial function which always suspects that a fault
@@ -1241,6 +1239,6 @@ suspicion function that simply reports the suspicion flag from
 \ac{RR} nodes, we have not been able to craft functions that
 present some usefulness. Although this does not mean, by any
 means, that they do not exist, our experience points to the
-suspicion function \new{not being a particularly good} abstraction for capturing
+suspicion function not being a particularly good abstraction for capturing
 intermediate fault models between the crash and Byzantine other
 than the \ac{RR} model.

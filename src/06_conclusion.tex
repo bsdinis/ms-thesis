@@ -1,2 +1,44 @@
 \fancychapter{Conclusions and Future Work}\label{chap:conclusion}
 \cleardoublepage{}
+
+In this dissertation, we have presented the \acf{RR} fault model,
+designed for replicated \acp{TEE} with external state. We have
+provided an extensive formalization of the model, resulting
+quorum systems and its properties, and laid out guidelines for
+adapting existing \ac{CFT} protocols to the model with little
+effort. We have furthermore experimentally verified that these
+resulting protocols are on par in terms of performance with their
+\ac{CFT} counterparts (which do not provide safety in the case of
+replicated \acp{TEE} with persistent state) and significantly
+outperform the \ac{BFT} counterparts that would otherwise be
+required to tolerate rollback faults.
+
+We have shown the general applicability of this model, both in
+\ac{TEEMS} and \ac{R2-S2}. In \ac{TEEMS}, we have designed and
+implemented a metadata service that can be used to enhance
+existing cloud storage systems with \ac{TEE}-grade security. Our
+evaluation of \ac{TEEMS} shows that the overhead it incurs is
+modest. In \ac{R2-S2}, we have shown the potential of this fault
+model outside the \ac{TEE} use case, by designing a distributed
+\ac{KVS} that strikes a balance between performance and
+durability, which would otherwise be impossible in the \ac{CFT} model. Our
+preliminary evaluation of \ac{R2-S2} shows that there are
+performance gains in using the \ac{RR} model, compared to simply
+synchronizing to all replicas.
+
+In the future, we aim to refine the \ac{R2-S2} prototype, showing
+its applicability in other replication protocols other than
+\ac{ABD}. We also wish to modify LevelDB to be able to
+implement the \emph{batch and wait} semantics, and further
+improve the performance of the system. Additionally, we aim to
+conduct a survey on frequency of failures (both crash faults and
+disk corruptions) that would help us instantiate the
+parameterizations described in
+Section~\ref{sec:r2s2parameterization} with real world data.
+Another high level forward looking vision is to study the
+possible benefits and limitations of conceptually separating a
+node's computation (code and volatile memory) and its persistent
+state. This approach would not only provide an interesting
+description of the \ac{RR} model but also have wider
+applicability, for instance in the context of network connected
+disks that can be used by multiple nodes.

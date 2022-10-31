@@ -31,9 +31,9 @@ Computing~\cite{azure-conf} and Google Confidential
 VMs~\cite{google-confVM}, where Cloud tenants can use compute
 services without trusting the platform provider.  However, the
 strong security properties from \acp{TEE} do not automatically
-extend to cloud storage. \new{To create a cloud-based system with
+extend to cloud storage. To create a cloud-based system with
 similar strong security guarantees of \acp{TEE}, it is only
-natural to consider using \acp{TEE} as its building blocks.} A
+natural to consider using \acp{TEE} as its building blocks. A
 \ac{TEE}-encapsulated metadata service, replicated for
 availability and fault-tolerance, can maintain encryption keys
 and version information for data blobs stored in untrusted Cloud
@@ -43,7 +43,7 @@ encrypted and versioned data blobs. Moreover, by supporting an
 atomic update operation on metadata, the service enables
 concurrent sharing of data blobs.
 
-\new{This approach needs to be integrated at the replication
+This approach needs to be integrated at the replication
 level. Fundamentally, even assuming an efficient way for
 storing the state of a single \ac{TEE}, this solution would still be
 unable to support concurrent sharing between multiple \acp{TEE}. This
@@ -53,7 +53,6 @@ or a top-level hash~\cite{memoir}, which can only be updated by
 the \ac{TEE} itself.  Concurrent sharing of persistent state instead
 requires atomic, concurrent updates of state blobs and their
 associated metadata (e.g., counter).
-}
 
 We designed and implemented a replicated metadata service called
 \ac{TEEMS} (for \ac{TEE}-based Metadata Service) based on the
@@ -217,7 +216,6 @@ rely on a \ac{TEEMS} replica as a proxy or on a client-operated \ac{TEE},
 attested by the replicas. In our description, as well as in our
 prototype implementation, we chose the former.
 
-\new{
 \subsection{Security Properties}
 
 \ac{TEEMS} ensures the confidentiality, integrity, and
@@ -227,7 +225,6 @@ Section~\ref{ssec:model_sec_prop}. However, the untrusted storage is relied
 upon for availability of data blobs. For increased availability,
 clients may store multiple copies of a data blob (or
 erasure-coded fragments) at independent storage providers.
-}
 %
 \subsection{Deployment scenarios}
 
@@ -236,7 +233,7 @@ erasure-coded fragments) at independent storage providers.
         \includegraphics[width=.32\linewidth]{ps/diag-2}
         \includegraphics[width=.32\linewidth]{ps/diag-3}\\
         (a) \hspace{2.7cm} (b)
-    \caption{Deployment scenarios: (a) cloud client, (b) colocation center. The shaded area represents a
+    \caption{Deployment scenarios: (a) cloud client, (b) collocation center. The shaded area represents a
     LAN (or a data center). Latencies will be used in the evaluation.
     $C$ is the client, $R$ is a replica and $P$ is the proxy replica.
     }\label{fig:deployments}
@@ -277,7 +274,6 @@ Flatbuffers~\cite{flatbuffers} to define our protocol messages
 and their serialization, but implemented the secure transport
 between the replicas using OpenSSL~\cite{openssl}.
 
-\new{
 It is important to observe that since in \ac{TEE} replicated
 systems replicas cannot generally trust clients to execute the protocol
 code correctly, our prototypes implement the driver code
@@ -290,7 +286,6 @@ protocol, which all replicas would remotely attest. We chose
 not to do this, since the former approach has wider applicability
 (e.g., it allows clients that do not run in \ac{TEE}-enabled
 platforms to interact with a \ac{TEE} replicated system).
-}
 
 \section{Evaluation}\label{sec:teems_eval}
 
@@ -338,7 +333,7 @@ $95^{\text{th}}$ percentiles.
     \begin{minipage}[t]{0.50\linewidth}
         \centering
         \includegraphics[width=\linewidth]{teem_results/deployment/result/collocation_center}
-        \caption{Colocation Center w/ Redis}\label{fig:coloc_redis}
+        \caption{Collocation Center w/ Redis}\label{fig:coloc_redis}
     \end{minipage}
     \caption{Latency in different deployment scenarios. The
     ``s3'' and ``redis'' bars refer to direct accesses to the
@@ -346,12 +341,12 @@ $95^{\text{th}}$ percentiles.
     rollback protection. ``teems'' refers to accesses without
     caching. ``teems + name cache'' and ``teems +
     blob cache'' refer to accesses where the name and blob
-    caches had a hit, respectively. \new{Caching only applies for
+    caches had a hit, respectively. Caching only applies for
     get requests, and in the cases of
     Figures~\ref{fig:cloud_client_s3} and~\ref{fig:cloud_client_remote_redis}
     the ``value cache'' exists, but is close to zero since the
     cache hit with a local read quorum means there is no network
-    latency access in the critical path.}}
+    latency access in the critical path.}
 \end{figure*}
 
 
