@@ -414,8 +414,26 @@ reliability of the system in these two scenarios.
 \end{table}
 
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Implementation}\label{sec:r2s2implementation}
+\section{Preliminary Evaluation}\label{sec:r2s2evaluation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+In this section, we present our preliminary evaluation of the
+\ac{R2-S2} prototype. We aim to answer two fundamental questions
+about the approach:
+
+\begin{enumerate}
+    \item What performance benefits can be extracted using
+        \emph{asymmetric synchronization}?
+        (\S\ref{ssec:r2s2_eval_asym})
+    \item What is the impact of different schedules in the
+        performance of the \ac{R2-S2} system?
+        (\S\ref{ssec:r2s2_eval_scheduling})
+\end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Implementation}\label{sec:r2s2implementation}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 We implemented \ac{R2-S2} using LevelDB~\cite{leveldb} as the
@@ -423,7 +441,11 @@ underlying storage layer and our own replication layer on top of
 it. This was extremely helpful since LevelDB already implements
 the \ac{LSM-tree}, the persistent log and the optional object cache
 out of the box, and provides for two out of the three modes of
-operation: batch and reply and sync and reply.
+operation: \emph{batch and reply} and \emph{sync and reply}.
+\new{We intend to implement the \emph{batch and wait} mode of
+operation and incorporate it in our prototype. However, this
+requires changing LevelDB to track the batches each object is
+placed in and when those batches are eventually persisted.}
 
 The replication layer was implemented in Rust with the request transport
 being handled by gRPC~\cite{grpc}. The \ac{R2-S2} client library
@@ -438,7 +460,100 @@ definition is comprised of 135 LoC. All the remainder driver code
 for benchmarks consists of 2KLoC of Rust.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Evaluation}\label{sec:r2s2evaluation}
+\subsection{Methodology}\label{ssec:r2s2methodology}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\bsd{TODO}
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=.75\linewidth]{r2s2_results/abd_small/tput.pdf}
+    \caption{Maximum throughput for different configurations.
+    The \emph{batch and reply} configuration places the
+    object in a batch and replies immediately, while in the \emph{sync and reply} configuration all replicas
+    flush the object to the persistent log before replying. In
+    the $T(BR, 5)$, $BR$ replicas in each write use the former
+    approach, while the remaining use the
+    latter.}\label{fig:r2s2_asym}
+\end{figure}
+\paragraph{Experimental Setup.}
+We ran our experiments using 5 machines  with
+Intel$^\text{\textregistered}$ Xeon$^\text{\textregistered}$ E-2174G
+processors running Debian Linux version 4.19 with \bsd{TODO:
+insert specification of the HDD} to run the replicas,
+plus one machine equipped with a Intel$^\text{\textregistered}$
+Xeon$^\text{\textregistered}$ Platinum 8260M processor running Debian
+Linux version 5.4 to execute the client driver of the benchmarks.
+
+\paragraph{Experimental Methodology.} In our result graphs, each data point represents the average
+measurement throughput measurement over $60$ seconds of running
+at load, using an open-loop client (i.e., a client that issues a
+request asynchronously at regular time intervals to achieve the
+desired load). To find the throughput in each configuration, we
+ran the experiment with multiple offered loads to find the
+maximum throughput point.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Asymmetric
+Synchronization}\label{ssec:r2s2_eval_asym}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+In this experiment, we compare two baselines in the classical
+\ac{CFT} model, \emph{sync and
+reply} and \emph{batch and reply}, with a set of \emph{threshold
+configurations} ($T(BR, N)$), which vary the number of replicas that use the
+batch and reply synchronization mode. Effectively, $T(0, N)$ is
+the \ac{CFT} sync and reply configuration and $T(N, N)$ is the
+\ac{CFT} batch and reply configuration.
+
+We measured the maximum throughput of each configuration using a
+randomized schedule and $128KB$ objects. As we can observe in
+Figure~\ref{fig:r2s2_asym}, the more replicas are
+allowed to batch the higher the average throughput.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Scheduling}\label{ssec:r2s2_eval_scheduling}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\bsd{THE INTERPRETATION IS IS TOTALLY WRONG}
+
+Next, we compare the same two baselines in the
+\ac{CFT} model, \emph{sync and
+reply} and \emph{batch and reply} with three \ac{RR} based quorum
+configuration which aim to combine the durability of the former and
+performance of the latter. Each of the \ac{RR} configurations
+uses a different static schedule, as described in
+Section~\ref{ssec:schedule}: constant, random and round robin.
+These configurations have $M_R = 2$ and $F = 2$. This matches
+both the number of tolerated crash faults of the \ac{CFT}
+baselines and the total number of replicas.
+
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=.75\linewidth]{r2s2_results/rr_small/tput.pdf}
+    \caption{Maximum throughput for different schedules.
+    The \emph{batch and reply} configuration places the
+    object in a batch and replies immediately, while in the \emph{sync and reply} configuration all replicas
+    flush the object to the persistent log before replying. The
+    constant schedule always synchronizes to the same $3$ of the
+    $5$ replicas. The randomized schedule also synchronizes to
+    $3$ replicas, but these get randomized every operation. The
+    round robin schedule changes the $3$ replicas at each
+    operation in a cycle.}\label{fig:r2s2_sched}
+\end{figure}
+
+We measured the maximum throughput of each configuration using  $128KB$ objects.
+As we can observe in Figure~\ref{fig:r2s2_sched}, both the random
+and the round robin schedules achieve a middle ground between the
+performance of the \emph{sync and reply} and \emph{batch and
+reply} configurations, while still achieving strong persistence.
+The constant schedule shows comparable performance to the
+\emph{sync and reply}. This is because the performance of a
+quorum operation is limited by the slowest replica in the quorum.
+Since having a replica in the quorum that synchronizes before replying is a
+pre-requisite to strong persistence and in the constant schedule
+the replicas that synchronize never get to batch, the load is
+unevely distributed. This causes the throughput to be severly
+limited.
+

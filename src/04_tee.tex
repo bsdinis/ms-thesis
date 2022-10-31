@@ -295,18 +295,15 @@ platforms to interact with a \ac{TEE} replicated system).
 \section{Evaluation}\label{sec:teems_eval}
 
 
-We evaluate our various implementations based on the \ac{RR}
-model using micro-benchmarks for protocol implementations and
-benchmark workloads for the full system built using those
-protocols. Our experiments attempt to answer the following
-questions:
+We evaluate the \ac{TEEMS} prototype based on the \ac{RR} model
+using benchmark workloads, aiming to answer the following questions:
 
 \begin{enumerate}
     \item What is the overhead added by \ac{TEEMS} to secure a cloud storage system under different
-      deployments?  (\S\ref{ssec:eval_deploy})
+      deployments?  (\S\ref{ssec:teems_eval_deploy})
     \item What is the performance of this system  when used to store
       metadata for a \ac{KVS} (Redis) under a benchmark
-      workload (YSCB)?
+        workload (\ac{YCSB})?
       (\S\ref{ssec:ycsb})
 \end{enumerate}
 
@@ -349,13 +346,18 @@ $95^{\text{th}}$ percentiles.
     rollback protection. ``teems'' refers to accesses without
     caching. ``teems + name cache'' and ``teems +
     blob cache'' refer to accesses where the name and blob
-    caches had a hit, respectively.}
+    caches had a hit, respectively. \new{Caching only applies for
+    get requests, and in the cases of
+    Figures~\ref{fig:cloud_client_s3} and~\ref{fig:cloud_client_remote_redis}
+    the ``value cache'' exists, but is close to zero since the
+    cache hit with a local read quorum means there is no network
+    latency access in the critical path.}}
 \end{figure*}
 
 
 
 %-------------------------------------------------------------------------------
-\subsection{\ac{TEEMS}-based storage}\label{ssec:eval_deploy}
+\subsection{\ac{TEEMS}-based storage}\label{ssec:teems_eval_deploy}
 %-------------------------------------------------------------------------------
 First, we focus on understanding the performance of our example
 application, the  \ac{TEEMS}-based secure storage service, under

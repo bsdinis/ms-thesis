@@ -5,4 +5,91 @@
 % reset acronyms
 \acresetall
 % use \noindent in firts paragraph
-\noindent TODO
+
+\bsd{this is 279 words}
+\noindent \acfp{TEE} ensure the confidentiality and integrity of
+computations in hardware. Subject to the \ac{TEE}'s threat model,
+the hardware shields a computation from most externally induced
+fault behavior except crashes. As a result, a \acs{CFT}
+replication protocol should be sufficient when replicating
+trusted code inside \acp{TEE}. However, \acp{TEE} do not offer
+efficient means of ensuring the freshness of persistent state,
+which can be rolled back to an earlier version. In this
+dissertation, we propose the \acf{RR} fault model for replicating
+\acp{TEE}, which precisely captures the possible fault behaviors
+of \acp{TEE} with external state, making it possible to avoid
+using expensive \acs{BFT} protocols. Then, we show that existing
+\acs{CFT} replication protocols can be easily adapted to this fault model
+with few changes, while retaining their original performance.
+
+\noindent We showcase the generality of the \ac{RR} model,
+by applying it to the context of replicated \acsp{KVS}.
+Current replicated \acsp{KVS} make a tradeoff
+between latency, throughput and durability, depending on whether
+they flush writes before replying (which offers poor
+performance) or batch writes in memory (possibly losing data if
+nodes crash before flushing). We observe that the latter case effectively
+constitutes a rollback on restart and as such can be handled
+using the \ac{RR} model.
+
+\noindent We have verified our approach by implementing \ac{RR}
+adaptations of two distributed protocols and compared
+them experimentally with their \acs{CFT} and \acs{BFT}
+counterparts. Furthermore, we
+leverage these protocols to build two systems: replicated metadata service called
+\acs{TEEMS}, and then show that it can be used to add \ac{TEE}-grade
+confidentiality, integrity, and freshness to untrusted cloud storage
+services; and \acs{R2-S2}, a replicated \acs{KVS}
+which leverages the \ac{RR} model to achieve a middle ground between latency,
+throughput and durability.
+
+\bsd{ what i'd like, but there is a limit of 250 words}
+
+\noindent \acfp{TEE} ensure the confidentiality and
+integrity of computations in hardware. Subject to the \ac{TEE}'s threat
+model, the hardware shields a computation from most externally induced
+fault behavior except crashes. As a result, a \acf{CFT} replication protocol should be sufficient when replicating
+trusted code inside \acp{TEE}.  However, \acp{TEE} do not provide efficient and
+general means of ensuring the freshness of external, persistent
+state. Therefore, \ac{CFT} replication is insufficient for
+\ac{TEE} computations
+with external state, as this state could be rolled back to an earlier
+version when a \ac{TEE} restarts.  Furthermore, using \acf{BFT} protocols in this
+setting is too conservative, because these protocols are designed to
+tolerate arbitrary behavior, not just roll-back during a restart.
+
+\noindent In this dissertation, we propose the \acf{RR} fault
+model for replicating \acp{TEE}, which precisely captures the possible
+fault behaviors of \acp{TEE} with external state. Then, we show that
+existing replication protocols can be easily adapted to this fault
+model with few changes, while retaining their original performance.
+We adapted two widely used crash fault tolerant protocols~---~the
+\acs{ABD}~\cite{abd} read/write register protocol and the Paxos~\cite{paxos}
+consensus protocol~---~to the \ac{RR} model.  Furthermore, we
+leverage these protocols to build a replicated metadata service called
+\ac{TEEMS}, and then show that it can be used to add \ac{TEE}-grade
+confidentiality, integrity, and freshness to untrusted cloud storage
+services.  Our evaluation shows that our protocols perform
+significantly better than their BFT counterparts (between $1.25$ and
+$55\times$ better throughput), while performing identically to
+the \ac{CFT} versions, which do not protect against rollback attacks.
+
+\new{
+\noindent We showcase the generality of the \ac{RR} model,
+by applying it to the context of replicated \acp{KVS}.
+Replicated \acp{KVS} typically have to make a tradeoff
+between latency, throughput and durability. They either: 1)
+synchronize incoming writes immediately, preventing
+\emph{batching} and degrading
+\emph{throughput}; 2) batch writes and wait for them to be
+flushed, increasing the \emph{latency}; or 3) batch writes
+and flush them in the background, risking losing the most recent updates if the node
+crashes before the batch is flushed, compromising
+\emph{durability}. We observe that this last option effectively
+constitutes a rollback on restart and as such can be handled
+using the \ac{RR} model. Based on this observation, we have
+designed and implemented \ac{R2-S2}, a replicated \ac{KVS}
+based on LevelDB which explores this
+concept to achieve a middle ground between latency,
+throughput and durability.
+}
