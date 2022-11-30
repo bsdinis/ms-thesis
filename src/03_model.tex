@@ -5,10 +5,12 @@ In this chapter, we define the \ac{RR} fault model, which
 captures the behaviour of replicated nodes with persistent state.
 
 We will motivate this fault model from its origins as a fault model
-for replicated \acp{TEE} with persistent state, and subsequently
-we will motivate how this fault model can further be applied to
-nodes with persistent storage replicated using the crash fault
-model. Then, we derive requirements for quorum systems in the
+for replicated \acp{TEE} with persistent state. Subsequently
+show how this fault model can also be applied in the context of
+replicated storage systems with persistent storage that operate
+outside of the adversarial model of \acp{TEE}, where \ac{CFT} is sufficient for
+\emph{correctness} but \ac{RR} can be leveraged for
+\emph{performance}. Then, we derive requirements for quorum systems in the
 \ac{RR} model, as well as their intersection properties, a key element to the
 correctness of replication protocols.
 
@@ -120,7 +122,7 @@ channels are outside the threat model of current \acp{TEE}.
 
 Subject to the \ac{TEE} threat model, computations that do not depend on
 external state enjoy confidentiality and integrity, and can be
-considered to suffer only crash faults (as opposed to Byzantine
+considered to suffer only crash faults if the codebase is trusted (as opposed to Byzantine
 faults, where an adversary may induce arbitrary behavior in a
 component). Therefore, a crash-tolerant replication protocol is sufficient
 to replicate \ac{TEE}-encapsulated computations that don't use external
@@ -1038,6 +1040,8 @@ the distributed register and 4KLoC for \ac{SMR}. Additionally, the client librar
 interact with the replicas take up 5KLoC (distributed
 register) and 4KLoC (\ac{SMR}).
 
+All prototypes are open-sourced under the MIT license
+and available at \url{https://gitlab.mpi-sws.org/restart-rollback}.
 
 \subsection{Experimental Setup.}
 We ran our experiments using 7 machines  with
@@ -1081,13 +1085,13 @@ $211$ new ones to the \ac{CFT} implementation. For the \ac{RR} SMR
 prototype, we modified $24$ LoC and added $28$ to the \ac{CFT}
 prototype.
 
-\begin{figure}[t]
+\begin{figure}[t!]
     \centering
-    \begin{minipage}[t]{.49\linewidth}
+    \begin{minipage}[t]{.75\linewidth}
         \includegraphics[width=\linewidth]{teem_results/protocol/1ms/parameter/reg_parameter}
         \caption{Read-write register}\label{fig:1ms_reg_lat_conf}
     \end{minipage}
-    \begin{minipage}[t]{.49\linewidth}
+    \begin{minipage}[t]{.75\linewidth}
         \includegraphics[width=\linewidth]{teem_results/protocol/1ms/parameter/smr_parameter}
         \caption{State machine}\label{fig:1ms_smr_lat_conf}
     \end{minipage}
@@ -1099,20 +1103,20 @@ prototype.
 
 \begin{figure*}[th!]
     \centering
-    \begin{minipage}[t]{0.24\linewidth}
+    \begin{minipage}[t]{0.45\linewidth}
         \includegraphics[width=\linewidth]{teem_results/protocol/1ms/lat/1ms_reg}
         \caption{Read-write register ($1ms$)}\label{fig:1ms_reg_lat}
     \end{minipage}
-    \begin{minipage}[t]{0.24\linewidth}
+    \begin{minipage}[t]{0.45\linewidth}
         \includegraphics[width=\linewidth]{teem_results/protocol/1ms/lat/1ms_smr}
         \caption{State machine ($1ms$)}\label{fig:1ms_smr_lat}
     \end{minipage}
     %\vskip 0.1cm
-    \begin{minipage}[t]{0.24\linewidth}
+    \begin{minipage}[t]{0.45\linewidth}
         \includegraphics[width=\linewidth]{teem_results/protocol/aws/aws_reg}
         \caption{Read-write register (AWS)}\label{fig:aws_reg_lat}
     \end{minipage}
-    \begin{minipage}[t]{0.24\linewidth}
+    \begin{minipage}[t]{0.45\linewidth}
         \centering
         \includegraphics[width=\linewidth]{teem_results/protocol/aws/aws_smr}
         \caption{State machine (AWS)}\label{fig:aws_smr_lat}
@@ -1123,11 +1127,11 @@ prototype.
 
 \begin{figure*}[th!]
     \centering
-    \begin{minipage}[t]{0.45\linewidth}
+    \begin{minipage}[t]{0.75\linewidth}
         \includegraphics[width=\linewidth]{teem_results/protocol/1ms/reg-tput/result/reg}
         \caption{Read-write register}\label{fig:reg_tputlat}
     \end{minipage}
-    \begin{minipage}[t]{0.45\linewidth}
+    \begin{minipage}[t]{0.75\linewidth}
         \includegraphics[width=\linewidth]{teem_results/protocol/1ms/smr-tput/result/smr}
         \caption{Replicated state machine}\label{fig:smr_tputlat}
     \end{minipage}

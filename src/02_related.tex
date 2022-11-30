@@ -4,7 +4,7 @@
 \section{Fault Models}\label{sec:related_fault_models}
 
 In this section, we survey the most used classes of fault models
-for distributed systems and compare them the novel
+for distributed systems and compare them to the novel
 \ac{RR} model. It is important to first clarify that, both
 here and in the rest of this document, we consider the network to
 be asynchronous. This means that the upper bound for the message
@@ -74,16 +74,25 @@ Byzantine and UpRight models in the asynchronous model.
     model $f$ is the number of crashed replicas, in the Byzantine
     model $f$ is the number of Byzantine replicas, and in the
     UpRight model $u$ is the number of crash faults and $r$
-    the number of commission faults tolerated.}
-    \begin{tabular}{|l|c|c|c|}
+    the number of commission faults tolerated. The \ac{RR}
+    quorum sizes are also included as a comparison point, where $F$ is
+    the number of crash faults, $M_R$ is the maximum number of
+    rollbacks and $s$ is a runtime value corresponding to the
+    number of replicas which are suspicious of their state
+    (further details can be found in Chapter~\ref{chap:model})}
+    \begin{tabular}{|r|l|c|c|c|}
         \hline
-        \textbf{Fault Model} & \textbf{Fault Parameter} & \textbf{\# Replicas} & \textbf{Quorum Size} \\
+        \multicolumn{2}{|r|}{\textbf{Fault Model}}           & \textbf{Fault Parameter}         & \textbf{\# Replicas} & \textbf{Quorum Size}          \\
         \hline
-        Crash & f & 2 f + 1 & f + 1 \\
+\multicolumn{2}{|r|}{Crash}                 & $f$ &  $2 f + 1$ & $f + 1$                     \\
         \hline
-        Byzantine & f & 3 f + 1 & 2 f + 1 \\
+\multicolumn{2}{|r|}{Byzantine}             & $f$ & $3 f + 1$ & $2 f + 1$                     \\
         \hline
-        UpRight & u, r & 2 u + r + 1 & u + r + 1 \\
+\multicolumn{2}{|r|}{UpRight}               & $u, r$ &  $2 u + r + 1$                 & $u + r + 1$                     \\
+        \hline
+\multirow{2}{*}{Restart-Rollback} & Read  & \multirow{2}{*}{$M_R, F$} & \multirow{2}{*}{$\max(M_R, F) + F + 1$} & $\min(M_R, s) + F + 1$ \\
+\cline{2-2}\cline{5-5}
+                                  & Write & &                   & $\max(M_R, F) + 1$ \\
         \hline
     \end{tabular}\label{tab:quorum}
 \end{table}
@@ -93,8 +102,9 @@ The \ac{RR} model allows for the system to tolerate a combination of
 crash faults and faults where a replica has stale state after a
 restart. The \ac{RR} model is strictly more encompassing than
 the crash model, allowing for fault behaviors that are
-not tolerated by this. Compared to \ac{BFT}, it does not need to
-protect against generic Byzantine faults, leading to simpler,
+not tolerated by this. Compared to \ac{BFT}, it assumes the
+correctness of the implementation of the protocol by all
+replicas, and as such does not need to protect against generic Byzantine faults, leading to simpler,
 more efficient protocols with smaller quorums in the common case.
 Finally, compared to hybrid crash-\ac{BFT}
 models~\cite{MeyerPradhan91,bc:hybrid,mc:hybrid,upright}, while

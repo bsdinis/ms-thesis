@@ -232,9 +232,11 @@ erasure-coded fragments) at independent storage providers.
         \includegraphics[width=.32\linewidth]{ps/diag-2}
         \includegraphics[width=.32\linewidth]{ps/diag-3}\\
         (a) \hspace{2.7cm} (b)
-    \caption{Deployment scenarios: (a) cloud client, (b) collocation center. The shaded area represents a
-    LAN (or a data center). Latencies will be used in the evaluation.
-    $C$ is the client, $R$ is a replica and $P$ is the proxy replica.
+    \caption{Deployment scenarios: (a) cloud client (with either
+    Redis or S3), (b) collocation center with Redis. The shaded area represents a
+    LAN (or a data center). Latencies will be used in the
+    evaluation (in the case of S3, $R$ represents the latency of
+    reads and $W$ the latency of writes). $C$ is the client, $R$ is a replica and $P$ is the proxy replica.
     }\label{fig:deployments}
 \end{figure}
 
@@ -285,6 +287,9 @@ protocol, which all replicas would remotely attest. We chose
 not to do this, since the former approach has wider applicability
 (e.g., it allows clients that do not run in \ac{TEE}-enabled
 platforms to interact with a \ac{TEE} replicated system).
+
+All prototypes are open-sourced under the MIT license
+and available at \url{https://gitlab.mpi-sws.org/restart-rollback}.
 
 \section{Evaluation}\label{sec:teems_eval}
 

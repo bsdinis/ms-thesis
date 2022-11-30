@@ -71,11 +71,11 @@ make deployments in infrastructure that they do not directly
 control (e.g., the public cloud). \acp{TEE} run in an highly
 adversarial attacker model, where the owner and operator of the
 hardware is not trusted. As such, although nodes can keep
-integrity checksums in memory and encrypt their persistent state,
+integrity information (i.e., a cryptographic hash) in memory and encrypt their persistent state,
 to ensure that it cannot be arbitrarily tampered with, their
 control over the persistent storage is quite limited.
-Particularly, when a restart happens and the volatile checksums
-are lost, the \ac{TEE} may suffer a \emph{rollback attack}, where
+Particularly, when a restart happens and the volatile integrity
+information is lost, the \ac{TEE} may suffer a \emph{rollback attack}, where
 the attacker replaces the persistent state with a stale but
 correct version of the state. Simply applying current replicated
 protocols would pose a correctness and security problem.

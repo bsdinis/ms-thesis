@@ -5,7 +5,7 @@ In this chapter, we will present the \acf{R2-S2}, a replicated
 \ac{KVS} based on LevelDB~\cite{leveldb}, a single node \ac{KVS}
 implemented using  \acp{LSM-tree}~\cite{lsm}. We have developed
 \ac{R2-S2} to showcase the broad applicability of the \ac{RR}
-model by using it in a non-security context.
+model by using it in a non-security context, without \acp{TEE}.
 
 The motivation for \ac{R2-S2} is presented in
 Section~\ref{sec:r2s2motivation}, followed by its design in
@@ -496,6 +496,9 @@ The client library was implemented in approximately 2KLoC of
 Rust. The server was implemented in 400LoC. The gRPC protocol
 definition is comprised of 135 LoC. All the remainder driver code
 for benchmarks consists of 2KLoC of Rust.
+
+All prototypes are open-sourced under the MIT license
+and available at \url{https://gitlab.mpi-sws.org/restart-rollback}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Methodology}\label{ssec:r2s2methodology}
