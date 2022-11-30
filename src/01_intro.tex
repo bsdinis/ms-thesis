@@ -134,7 +134,7 @@ integrity of any externally stored state can be ensured by standard
 cryptographic means.
 
 The \ac{RR} fault model occupies a middle ground between \ac{CFT}
-and \ac{BFT}. As we will show, unlike CFT it provides
+and \ac{BFT} models. As we will show, unlike CFT it provides
 security for replicated \acp{TEE} by tolerating state roll-back at a cost
 that is similar to \ac{CFT} and better than \ac{BFT}. Specifically, it is able
 to substantially reduce the required communication, particularly for
@@ -204,7 +204,7 @@ Our contributions include:
         enables higher throughput from \acp{KVS} backed by
         persistent state;
     \item An extensive experimental evaluation of our protocols
-        in the \ac{TEE} setting, with a \update{detailed} comparison with
+        in the \ac{TEE} setting, with a detailed comparison with
         unsafe \ac{CFT} and expensive \ac{BFT} solutions;
     \item An preliminary experimental evaluation of the \ac{R2-S2}
         system.
@@ -231,7 +231,7 @@ avenues for future work.
 
 A portion of this thesis, namely most of the material covered in
 Chapters~\ref{chap:model} and~\ref{chap:tee}, is featured in a
-paper conditionally accepted (decision of ``minor reviosion'') to
+paper conditionally accepted (decision of ``minor revision'') to
 the Network and Distributed System Security (NDSS) Symposium
 2023.
 
@@ -356,7 +356,7 @@ YCSB.  Our experimental results show that the protocols for the
 \faultmodel\ model perform significantly better than their BFT
 counterparts, and, compared to CFT, they perform identically while
 additionally tolerating rollback attacks.
-Furthermore, \sys\ offers secure, sharable storage at modest overhead.
+Furthermore, \sys\ offers secure, shareable storage at modest overhead.
 
 Our contributions include:
 %\begin{enumerate}

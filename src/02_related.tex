@@ -154,7 +154,7 @@ using state machine replication (SMR), system builders can build
 arbitrarily complex fault tolerant systems~\cite{schneider-smr} (provided that they
 are deterministic). A common method for achieving SMR is to
 attach a \emph{consensus} module to an operation log. Consensus
-a process by which a set of nodes agree on a value. By agreeing
+is a process by which a set of nodes agree on a value. By agreeing
 on the value for each entry in the log, replicas can then be sure
 that they apply the same operations to their local state machines in the same order,
 guaranteeing that their state is consistent. Importantly,
@@ -188,7 +188,7 @@ services~\cite{azure-conf,google-confVM}.
 \paragraph{Built-in storage support for TEEs.}
 Current TEEs offer some support for securely storing persistent
 data in an encrypted form outside the TEE, such that it can be
-decrypted only by the TEE that stored it and only if it was not
+decrypted only by the TEE that stored it if and only if it was not
 modified. If this support would offer perfect protection, then a
 CFT replication protocol might suffice to replicate TEE-based
 systems. However, different systems have different limitations
@@ -250,9 +250,7 @@ The drawback of defenses in this category is that, in practice,
 either the rate at which a TEE can save its state is limited by
 wear of the non-volatile memory (latest SGX, Ariadne), or there
 is a dependency on specialized hardware or an uninterruptible
-power supply (ICE, Memoir).
-
-A second category of defenses stores freshness information in a
+power supply (ICE, Memoir). A second category of defenses stores freshness information in a
 separate trusted server, or set of servers that are assumed to
 not all be subject to a coordinated rollback attack.
 

@@ -11,9 +11,7 @@ The motivation for \ac{R2-S2} is presented in
 Section~\ref{sec:r2s2motivation}, followed by its design in
 Section~\ref{sec:r2s2design}. We present guidelines for system
 parameterization in Sections~\ref{sec:r2s2parameterization}.
-Section~\ref{sec:r2s2implementation} describes the implementation
-of the PoC and a preliminary evaluation is presented in
-Section~\ref{sec:r2s2evaluation}.
+A preliminary evaluation is presented in Section~\ref{sec:r2s2evaluation}.
 
 \section{Motivation}\label{sec:r2s2motivation}
 Batching multiple small write operations to a block-oriented storage device into a
@@ -177,14 +175,15 @@ since the volatile replicas are the ones which can suffer the rollback on
 restart.
 
 \paragraph{Improving performance.}The key to improving throughput
-(compared to approach A) is scheduling. Intuitively, it is
+(compared to the \emph{sync immediately} baseline) is scheduling. Intuitively,
 this will distribute the burden of syncing to disk among the
 replica set, allowing all the replicas to batch eventually. By
 having all replicas reply as soon as possible we also get a
-latency improvement compared to approach B. Regretablly, although
-this approach does yield performance benefits compared to
-approaches A and B, it is impossible to match the performance of
-C\@: this would require removing any synchronizing writes from the
+latency improvement compared to the \emph{batch and wait}
+baseline. Regretablly, although
+these approaches does yield performance benefits compared to
+\emph{sync immediately} and \emph{batch and wait}, it is impossible to match the performance of
+the \emph{batch and reply} baseline: this would require removing any synchronizing writes from the
 critical path, making $\mathbb{W}_Q \cap \mathbb{F} =
 \varnothing$, violating strong persistence.
 
@@ -393,7 +392,7 @@ available at a given point in time is simply $1 - p_c^{\min(R_Q,
 W_Q)}$.
 
 Now let us imagine that the probability of replicas crashing
-\emph{is} correlated, as is the case in a datacenter deployment.
+\emph{is} correlated, as is the case in a data-center deployment.
 Under this assumption, an event like a power outage will cause
 all replicas to crash and lose their volatile state. Therefore,
 the probability of $n$ replicas crashing is the same as the
@@ -411,7 +410,7 @@ reliability of the system in these two scenarios.
 \begin{table}[ht]
     \centering
     \caption{Availability and reliability in a geo-replicated
-    deployment (uncorrelated failures) versus a datacenter
+    deployment (uncorrelated failures) versus a data-center
     deployment (correlated failures). $R_Q$ and $W_Q$
     are the sizes of the quorums for a parameterization with $M_R$
     tolerated rollbacks and $F$ crash faults}\label{tab:parameterization}
@@ -443,11 +442,11 @@ a quorum crashing, since it is not guaranteed that the quorum
 persisted the value before replying. Therefore, the
 probability of data loss \emph{is} deployment sensitive. In the
 geo-replicated scenario, the probability of a quorum crashing is
-$p_c^Q$, whereas in the datacenter scenario (where crash faults
+$p_c^Q$, whereas in the data-center scenario (where crash faults
 are correlated) this probability is simply $p_c$, resulting in
 a reliability of $1 - p_c^Q$ and $1 - p_c$, respectively. As
 expected, these values are lower than those offered by
-\ac{R2-S2}. Moreover, in the datacenter scenario the reliability
+\ac{R2-S2}. Moreover, in the data-center scenario the reliability
 is \emph{independent} of the number of replicas, since they are
 likely to crash simultaneously.
 

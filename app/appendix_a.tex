@@ -14,7 +14,7 @@ machine replication protocol.
 
 \section{\ac{RR} Quorum Systems}\label{app:quorum}
 
-From the parametrization of \ac{RR} quorum systems derived
+From the parameterization of \ac{RR} quorum systems derived
 in Section~\ref{ssec:parameters}, we can prove a theorem that
 characterizes the properties we obtain from these systems and
 their quorum sizes.
@@ -120,7 +120,7 @@ However, this is not yet a total order, since reads will have the same
 timestamp as the operation that created the value that was returned. We
 thus add the additional constraint that reads are ordered immediately
 after the operation that wrote the value that was read. When several
-read opearations return the same value, then we order the
+read operations return the same value, then we order the
 reads among themselves in any total order that is compatible with the
 real-time order of invocation, i.e., with the constraint that
 if $read_1$ returns before $read_2$ is invoked then $read_1 < read_2$.

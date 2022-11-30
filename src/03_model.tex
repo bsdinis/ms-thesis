@@ -17,16 +17,15 @@ adapt existing \ac{CFT} protocols to the \ac{RR} model. We
 provide two concrete examples of such adaptations using
 well-established protocols: the \ac{ABD}~\cite{abd} protocol for
 a read-write register and the Paxos~\cite{paxos} protocol for
-\ac{SMR}. We conclude this chapter with a discussion.
-
-We then provide a performance evaluation in the context of
-\acp{TEE} using micro-benchmarks. We compare the \ac{CFT}
-protocols with their adaptations to the \ac{RR} model and the
-equivalent counterparts in the \ac{BFT} world. This demonstrates
-the viability and usefulness of the \ac{RR} model in the context
-of \ac{TEE}-based replication, showcasing how it enables
-protocols with both correctness (otherwise only found in
-\ac{BFT}) and speed (present in \ac{CFT}-based replication).
+\ac{SMR}.  We then provide a performance evaluation in the
+context of \acp{TEE} using micro-benchmarks. We compare the
+\ac{CFT} protocols with their adaptations to the \ac{RR} model
+and the equivalent counterparts in the \ac{BFT} world. This
+demonstrates the viability and usefulness of the \ac{RR} model in
+the context of \ac{TEE}-based replication, showcasing how it
+enables protocols with both correctness (otherwise only found in
+\ac{BFT}) and speed (present in \ac{CFT}-based replication). We
+conclude this chapter with a discussion.
 
 \section{Motivation}\label{sec:motivation}
 
@@ -1007,7 +1006,7 @@ they have stale data).
 \section{Evaluation of \ac{TEE} replication protocols}
 
 We evaluate our various implementations based on the \ac{RR}
-model using micro-benchmarks for protocol implementations. Our
+model using micro-benchmarks for the protocol implementations. Our
 experiments attempt to answer the following questions:
 
 \begin{enumerate}
@@ -1062,7 +1061,7 @@ geo-replication scenario, based on the measured the link
 properties (latency and bandwidth) between several AWS
 EC2~\cite{ec2} instances (t2.medium or t3.medium types), located
 in regions spread across the globe (AWS topology). This setup
-ensures flexibility and experimental reproducability.
+ensures flexibility and experimental reproducibility.
 
 In our result graphs, each data point represents the median
 measurement over $3,000$ requests (except throughput numbers as
