@@ -506,7 +506,7 @@ and available at \url{https://gitlab.mpi-sws.org/restart-rollback}.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=.75\linewidth]{r2s2_results/abd_small/tput.pdf}
+    \includegraphics[width=.70\linewidth]{r2s2_results/abd_small/tput.pdf}
     \caption{Maximum throughput for different configurations.
     The \emph{batch and reply} configuration places the
     object in a batch and replies immediately, while in the
@@ -575,20 +575,10 @@ overall system significantly better.
 \subsection{Scheduling}\label{ssec:r2s2_eval_scheduling}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Next, we compare the same two baselines in the
-\ac{CFT} model, \emph{sync immediately} and \emph{batch and reply} with three \ac{RR} based quorum
-configuration which aim to combine the durability of the former and
-performance of the latter. Each of the \ac{RR} configurations
-uses a different static schedule, as described in
-Section~\ref{ssec:schedule}: constant, random and round robin.
-These configurations have $M_R = 2$ and $F = 2$. This matches
-both the number of tolerated crash faults of the \ac{CFT}
-baselines and the total number of replicas.
-
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=.75\linewidth]{r2s2_results/rr_small/tput.pdf}
+    \includegraphics[width=.70\linewidth]{r2s2_results/rr_small/tput.pdf}
     \caption{Maximum throughput for different schedules.
     The \emph{batch and reply} configuration places the
     object in a batch and replies immediately, while in the
@@ -600,6 +590,16 @@ baselines and the total number of replicas.
     round robin schedule changes the $3$ replicas at each
     operation in a cycle.}\label{fig:r2s2_sched}
 \end{figure}
+
+Next, we compare the same two baselines in the
+\ac{CFT} model, \emph{sync immediately} and \emph{batch and reply} with three \ac{RR} based quorum
+configuration which aim to combine the durability of the former and
+performance of the latter. Each of the \ac{RR} configurations
+uses a different static schedule, as described in
+Section~\ref{ssec:schedule}: constant, random and round robin.
+These configurations have $M_R = 2$ and $F = 2$. This matches
+both the number of tolerated crash faults of the \ac{CFT}
+baselines and the total number of replicas.
 
 We measured the maximum throughput of each configuration using  $128KB$ objects.
 As we can observe in Figure~\ref{fig:r2s2_sched}, all \ac{RR}
